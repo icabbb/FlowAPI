@@ -6,21 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { KeyValueEditor, type KeyValueEntry } from '@/components/shared/key-value-editor';
-import { useFlowStore } from '@/store/flow-store';
+import { useFlowStore } from '@/store/index';
 import { Braces, Lock, FileCode } from 'lucide-react';
 import { AuthSettings, type AuthConfig } from '@/components/shared/auth-settings';
 import { useTheme } from 'next-themes';
@@ -215,7 +215,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
             className={cn(
               "nodrag w-full rounded-lg focus:outline-none h-10 px-3 text-sm shadow-sm",
               isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
+                ? "bg-[#0f172acc] border-2 border-blue-500 text-white focus:border-blue-400" 
                 : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
             )}
           />
@@ -235,7 +235,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
               <SelectTrigger id="method" className={cn(
                 "nodrag h-10 focus:outline-none rounded-lg shadow-sm", 
                 isDark 
-                  ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400"
+                  ? "bg-[#0f172acc] border-2 border-blue-500 text-white focus:border-blue-400"
                   : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
               )}>
                 <SelectValue placeholder="Select method" />
@@ -244,7 +244,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
               <SelectContent className={cn(
                 "rounded-lg shadow-md",
                 isDark 
-                  ? "bg-neutral-800 border-2 border-blue-500 text-white" 
+                  ? "bg-[#0f172acc] border-2 border-blue-500 text-white" 
                   : "bg-white border-2 border-neutral-800 text-neutral-800"
               )}>
                 <SelectItem value="GET" className={cn(
@@ -291,7 +291,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
                 className={cn(
                   "nodrag w-full rounded-lg focus:outline-none h-10 px-3 text-sm shadow-sm pr-8",
                   isDark 
-                    ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
+                    ? "bg-[#0f172acc] border-2 border-blue-500 text-white focus:border-blue-400" 
                     : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
                 )}
               />
@@ -314,7 +314,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
         <TabsList className={cn(
           "w-full grid grid-cols-6 rounded-xl shadow-inner mb-3 border-2",
           isDark 
-            ? "bg-neutral-800 border-blue-500" 
+            ? "bg-[#0f172acc] border-blue-500" 
             : "bg-neutral-100 border-neutral-800"
         )}>
           {/* TabsTrigger: Cartoon Style with dark mode */}
@@ -409,7 +409,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
           <div className={cn(
             "space-y-3 p-4 rounded-lg shadow-sm border-2",
             isDark 
-              ? "bg-neutral-800 border-blue-500" 
+              ? "bg-[#0f172acc] border-blue-500" 
               : "bg-white border-neutral-800"
           )}>
             <Label className={cn(
@@ -433,7 +433,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
           <div className={cn(
             "space-y-3 p-4 rounded-lg shadow-sm border-2",
             isDark 
-              ? "bg-neutral-800 border-blue-500" 
+              ? "bg-[#0f172acc] border-blue-500" 
               : "bg-white border-neutral-800"
           )}>
             <Label className={cn(
@@ -457,7 +457,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
           <div className={cn(
             "space-y-4 p-4 rounded-lg shadow-sm border-2",
             isDark 
-              ? "bg-neutral-800 border-blue-500" 
+              ? "bg-[#0f172acc] border-blue-500" 
               : "bg-white border-neutral-800"
           )}>
             <Label htmlFor="bodyType" className={cn(
@@ -471,7 +471,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
               <SelectTrigger id="bodyType" className={cn(
                 "nodrag h-10 focus:outline-none rounded-lg shadow-sm", 
                 isDark 
-                  ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400"
+                  ? "bg-[#0f172acc] border-2 border-blue-500 text-white focus:border-blue-400"
                   : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
               )}>
                 <SelectValue placeholder="Select body type" />
@@ -479,7 +479,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
               <SelectContent className={cn(
                 "rounded-lg shadow-md",
                 isDark 
-                  ? "bg-neutral-800 border-2 border-blue-500 text-white" 
+                  ? "bg-[#0f172acc] border-2 border-blue-500 text-white" 
                   : "bg-white border-2 border-neutral-800 text-neutral-800"
               )}>
                 <SelectItem value="none" className={cn(
@@ -510,7 +510,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
                   className={cn(
                     "nodrag min-h-32 rounded-lg focus:outline-none text-sm font-mono shadow-sm p-3",
                     isDark 
-                      ? "bg-neutral-900 border-2 border-blue-500 text-white focus:border-blue-400" 
+                      ? "bg-[#0f172acc] border-2 border-blue-500 text-white focus:border-blue-400" 
                       : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
                   )}
                 />
@@ -526,13 +526,13 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
                           setBody(formatted);
                           updateNodeData(nodeId, { body: formatted });
                         } catch (e) {
-                          console.error("Invalid JSON:", e);
+
                         }
                       }}
                       className={cn(
                         "h-9 px-3 gap-1 text-xs border-2 rounded-lg font-semibold shadow-sm transition-all duration-200 transform hover:scale-103",
                         isDark 
-                          ? "border-blue-500 bg-neutral-800 text-blue-300 hover:bg-neutral-700" 
+                          ? "border-blue-500 bg-[#0f172acc] text-blue-300 hover:bg-neutral-700" 
                           : "border-neutral-800 bg-white text-neutral-800 hover:bg-neutral-100 hover:border-neutral-900"
                       )}
                     >
@@ -560,7 +560,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
           <div className={cn(
             "space-y-3 p-4 rounded-lg shadow-sm border-2",
             isDark 
-              ? "bg-neutral-800 border-blue-500" 
+              ? "bg-[#0f172acc] border-blue-500" 
               : "bg-white border-neutral-800"
           )}>
             <Label className={cn(
@@ -587,7 +587,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
               className={cn(
                 "nodrag min-h-40 rounded-lg focus:outline-none text-sm font-mono shadow-sm p-3",
                 isDark 
-                  ? "bg-neutral-900 border-2 border-purple-500/70 text-white focus:border-purple-400" 
+                  ? "bg-[#0f172acc] border-2 border-purple-500/70 text-white focus:border-purple-400" 
                   : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-purple-500"
               )}
             />
@@ -599,7 +599,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
            <div className={cn(
             "space-y-3 p-4 rounded-lg shadow-sm border-2",
             isDark 
-              ? "bg-neutral-800 border-blue-500" 
+              ? "bg-[#0f172acc] border-blue-500" 
               : "bg-white border-neutral-800"
            )}>
             <Label className={cn(
@@ -626,7 +626,7 @@ export function HttpRequestSettings({ node }: HttpRequestSettingsProps) {
               className={cn(
                 "nodrag min-h-40 rounded-lg focus:outline-none text-sm font-mono shadow-sm p-3",
                 isDark 
-                  ? "bg-neutral-900 border-2 border-lime-500/70 text-white focus:border-lime-400" 
+                  ? "bg-[#0f172acc] border-2 border-lime-500/70 text-white focus:border-lime-400" 
                   : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-yellow-500"
               )}
             />

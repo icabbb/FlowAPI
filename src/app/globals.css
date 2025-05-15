@@ -69,6 +69,20 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
+  
+  /* Sidebar Variables - Light Theme */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 222.2 84% 4.9%;
+  --sidebar-primary: 222.2 47.4% 11.2%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 210 40% 96.1%;
+  --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+  --sidebar-border: 214.3 31.8% 91.4%;
+  --sidebar-ring: 222.2 84% 4.9%;
+  --sidebar-width: 250px;
+  --sidebar-width-icon: 3rem;
+  
+  /* Legacy sidebar variables - keeping for compatibility */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -116,6 +130,18 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
+  
+  /* Sidebar Variables - Dark Theme */
+  --sidebar-background: 240 10% 3.9%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-primary: 217.2 91.2% 59.8%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 240 4.9% 83.9%;
+  
+  /* Legacy sidebar variables - keeping for compatibility */
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -171,25 +197,25 @@
     stroke-dasharray: 5;
     animation: flowAnimation 15s linear infinite;
   }
-  
+
   /* Different edge colors for different connection types */
   .react-flow__edge[data-type="animated"] .react-flow__edge-path {
     @apply stroke-blue-500;
     stroke-dasharray: 5;
     animation: flowAnimation 15s linear infinite;
   }
-  
+
   /* Status-based edge colors */
   .status-success .react-flow__edge-path {
     @apply stroke-lime-500;
     animation: flowAnimation 10s linear infinite;
   }
-  
+
   .status-error .react-flow__edge-path {
     @apply stroke-red-500;
     animation: flowAnimation 20s linear infinite reverse;
   }
-  
+
   .status-loading .react-flow__edge-path {
     @apply stroke-amber-500;
     animation: pulse 1.5s infinite alternate;
@@ -199,18 +225,18 @@
   .react-flow__node {
     @apply overflow-visible;
   }
-  
+
   /* Ensure node content can scroll */
   .react-flow__node-transformData .scrollable-content,
   .react-flow__node-jsonNode .scrollable-content {
     @apply overflow-y-auto max-h-full;
   }
-  
+
   /* Ensure node handles stay on top */
   .react-flow__handle {
     @apply z-30;
   }
-  
+
   /* Ensure resize handles stay on top as well */
   .resize-handle {
     @apply z-20;
@@ -227,6 +253,11 @@
   .react-flow__node.selected {
     @apply ring-2 ring-blue-500 ring-offset-2;
   }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Animation for dashed selected edges */
@@ -331,6 +362,42 @@
   .dark-cartoon-panel {
     @apply bg-gray-800 border-l-2 border-blue-500 shadow-lg;
   }
+
+  /* Estilos para navegadores webkit (Chrome, Safari, Edge) */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thumb-neutral-300::-webkit-scrollbar-thumb {
+    background-color: #d4d4d4;
+    border-radius: 3px;
+  }
+  
+  .dark .scrollbar-thumb-neutral-700::-webkit-scrollbar-thumb {
+    background-color: #404040;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-track-transparent::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+  
+  /* Estilos para navegadores Firefox */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #d4d4d4 transparent;
+  }
+  
+  .dark .scrollbar-thin {
+    scrollbar-color: #404040 transparent;
+  }
+  
+  /* Estilos generales para todos los contenedores con scroll */
+  .scrollable-container {
+    -ms-overflow-style: auto; /* IE y Edge */
+    scrollbar-width: thin; /* Firefox */
+  }
 }
 
 /* ReactFlow Controls & MiniMap - Clean, high-specificity selectors */
@@ -427,4 +494,39 @@
   @apply stroke-blue-600;
   stroke-dasharray: 5; 
   animation: dashdraw 0.5s linear infinite;
+}
+
+/* halftone stays if you already had it */
+
+/* link ink-fill */
+.comic-link{
+  position:relative;
+  display:inline-block;
+  padding-bottom:2px;
+}
+.comic-link::after{
+  content:'';
+  position:absolute; left:0; bottom:0;
+  width:100%; height:2px;
+  background:currentColor;
+  transform-origin:right;
+  transform:scaleX(0);
+  transition:transform .3s ease-out;
+}
+.comic-link:hover::after{ transform-origin:left; transform:scaleX(1); }
+
+/* reduced motion fallback */
+@media (prefers-reduced-motion:reduce){
+  .comic-link::after{ transition:none }
+}
+
+/* Oculta el cursor del panel de React Flow cuando nuestro cursor personalizado está activo */
+.hide-native-cursor .react-flow__pane {
+  cursor: none !important; /* Usamos !important para asegurar la precedencia */
+}
+
+/* También para los estados de arrastre del panel, si React Flow los usa */
+.hide-native-cursor .react-flow__pane.grab,
+.hide-native-cursor .react-flow__pane.grabbing {
+  cursor: none !important;
 }

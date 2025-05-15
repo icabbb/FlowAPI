@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Trash2, Plus } from 'lucide-react';
@@ -124,13 +123,15 @@ export function PathListEditor({
             )}
           />
           {/* Input: Cartoon Style with Dark Mode */}
-          <Input
+          <input
             type="text"
             placeholder={pathPlaceholder}
             value={entry.path}
             onChange={(e) => handlePathChange(entry.id, e.target.value)}
+            onMouseDown={(e) => e.stopPropagation()}
             className={cn(
-              "nodrag flex-grow rounded-lg focus:outline-none h-9 px-3 text-sm shadow-sm font-mono",
+              "flex-grow rounded-lg focus:outline-none h-9 px-3 text-sm shadow-sm font-mono",
+              "allow-text-selection",
               isDark 
                 ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400 placeholder:text-blue-200/50" 
                 : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"

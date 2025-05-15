@@ -77,9 +77,10 @@ export async function encryptText(text: string, userId: string): Promise<string>
     // Convert to base64 for storage
     return btoa(String.fromCharCode(...new Uint8Array(result)));
   } catch (error) {
-    console.error('Encryption error:', error);
+    
     // Return the original text if encryption fails
     // In production, you might want to handle this differently
+    
     return text;
   }
 }
@@ -120,7 +121,7 @@ export async function decryptText(encryptedText: string, userId: string): Promis
     const decoder = new TextDecoder();
     return decoder.decode(decryptedBuffer);
   } catch (error) {
-    console.error('Decryption error:', error);
+
     // Return the original text if decryption fails
     // This could happen if the text wasn't actually encrypted
     return encryptedText;

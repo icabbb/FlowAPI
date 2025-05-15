@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import {
   ReactFlow,
@@ -15,38 +14,77 @@ import {
 } from '@xyflow/react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
+import { FollowPointer } from '@/components/ui/following-pointer';
+import { useUser } from '@clerk/nextjs';
 
 import '@xyflow/react/dist/style.css';
 
 import { HttpRequestNode } from '@/components/nodes/http-request-node';
 import { JsonNode } from '@/components/nodes/json-node';
 import { SelectFieldsNode } from '@/components/nodes/select-fields-node';
+import { DelayNode } from '@/components/nodes/delay-node';
+import { VariableSetNode } from '@/components/nodes/variable-set-node';
+import { TransformNode, type TransformNodeData } from '@/components/nodes/transform-node';
+import { ConditionalNode, type ConditionalNodeData } from '@/components/nodes/conditional-node';
+import { LoopNode } from '@/components/nodes/loop-node';
 import { AnimatedEdge } from '@/components/edges/animated-edge';
-import { useFlowStore } from '@/store/flow-store';
+import { useFlowStore } from '@/store/index';
+import { ExportNode } from './nodes/export-node';
+import { useCollaborationContext } from '@/contexts/collaboration-context';
 
 function FlowCanvasInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const {
-    nodes,
-    edges,
+    nodes: allNodesFromStore,
+    edges: allEdgesFromStore,
     onNodesChange,
     onEdgesChange,
-    onConnect,
+    onConnect: zustandOnConnect,
     setSelectedNodeId,
-    addNode,
-    addEdge,
+    addNode: zustandAddNode,
+    addEdge: zustandAddEdge,
     saveCurrentFlow,
     currentFlowId,
     isSaving
   } = useFlowStore();
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const [isMounted, setIsMounted] = useState(false);
+  const { user } = useUser();
+  const [localCursorScreenPosition, setLocalCursorScreenPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isNodeDragging, setIsNodeDragging] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
+
+  const collaborationContext = useCollaborationContext();
+  const onCursorMoveForRemote = collaborationContext?.updateCursorPosition;
+  const remoteCursors = collaborationContext?.remoteCursors || [];
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (localCursorScreenPosition && !isNodeDragging && !isPanning) {
+      document.body.style.cursor = 'none';
+    } else {
+      document.body.style.cursor = 'auto';
+    }
+    return () => {
+      document.body.style.cursor = 'auto';
+    };
+  }, [localCursorScreenPosition, isNodeDragging, isPanning]);
 
   const nodeTypes = useMemo(() => ({
-    httpRequest: HttpRequestNode as any,
-    jsonNode: JsonNode as any,
-    selectFields: SelectFieldsNode as any,
+    httpRequest: HttpRequestNode,
+    jsonNode: JsonNode,
+    selectFields: SelectFieldsNode,
+    delayNode: DelayNode,
+    variableSetNode: VariableSetNode,
+    transformNode: TransformNode,
+    conditionalNode: ConditionalNode,
+    loop: LoopNode,
+    exportNode: ExportNode,
   }), []);
 
   const edgeTypes = useMemo(() => ({
@@ -72,14 +110,9 @@ function FlowCanvasInner() {
 
   const handleConnect = useCallback(
     (params: any) => {
-      const newEdge = {
-        ...params,
-        type: 'animated',
-        data: { label: 'Connection' },
-      };
-      onConnect(newEdge);
+      zustandOnConnect(params);
     },
-    [onConnect]
+    [zustandOnConnect]
   );
 
   const onDrop = useCallback(
@@ -89,7 +122,8 @@ function FlowCanvasInner() {
         return;
       }
       const type = event.dataTransfer.getData('application/reactflow');
-      if (type !== 'httpRequest' && type !== 'jsonNode' && type !== 'selectFields') {
+      if (type !== 'httpRequest' && type !== 'jsonNode' && type !== 'selectFields' && type !== 'delayNode' && type !== 'variableSetNode' && type !== 'transformNode' && type !== 'conditionalNode' && type !== 'loop' && type !== 'exportNode') {
+
         return;
       }
       
@@ -100,7 +134,13 @@ function FlowCanvasInner() {
       
       const httpNodeId = crypto.randomUUID();
       const jsonNodeId = crypto.randomUUID();
-      
+      const selectFieldsId = crypto.randomUUID();
+      const delayNodeId = crypto.randomUUID();
+      const variableSetNodeId = crypto.randomUUID();
+      const transformNodeId = crypto.randomUUID();
+      const conditionalNodeId = crypto.randomUUID();
+      const loopNodeId = crypto.randomUUID();
+      const exportNodeId = crypto.randomUUID();
       const nodesToAdd: Node[] = [];
       const edgesToAdd: Edge[] = [];
 
@@ -147,7 +187,6 @@ function FlowCanvasInner() {
         };
         nodesToAdd.push(jsonNode);
       } else if (type === 'selectFields') {
-        const selectFieldsId = crypto.randomUUID(); 
         const selectFieldsNode: Node = {
           id: selectFieldsId,
           type: 'selectFields',
@@ -158,32 +197,179 @@ function FlowCanvasInner() {
           }
         };
         nodesToAdd.push(selectFieldsNode);
+      } else if (type === 'delayNode') {
+        const delayNode: Node = {
+          id: delayNodeId,
+          type: 'delayNode',
+          position,
+          data: { 
+            label: 'Delay',
+            delayMs: 1000
+          }
+        };
+        nodesToAdd.push(delayNode);
+      } else if (type === 'variableSetNode') {
+        const variableSetNode: Node = {
+          id: variableSetNodeId,
+          type: 'variableSetNode',
+          position,
+          data: { 
+            label: 'Set Variable',
+            variableName: 'myVar',
+            variableValue: ''
+          }
+        };
+        nodesToAdd.push(variableSetNode);
+      } else if (type === 'transformNode') {
+        const transformNode: Node<TransformNodeData> = {
+          id: transformNodeId,
+          type: 'transformNode',
+          position,
+          data: {
+            label: 'Transform Data',
+            mappingRules: [],
+          }
+        };
+        nodesToAdd.push(transformNode);
+      } else if (type === 'conditionalNode') {
+        const conditionalNode: Node<ConditionalNodeData> = {
+          id: conditionalNodeId,
+          type: 'conditionalNode',
+          position,
+          data: {
+            label: 'If Condition',
+            conditions: [
+              { id: crypto.randomUUID(), expression: 'true', outputHandleId: 'true' }
+            ],
+            defaultOutputHandleId: 'default',
+          }
+        };
+        nodesToAdd.push(conditionalNode);
+      } else if (type === 'loop') {
+        const loopNode: Node = {
+          id: loopNodeId,
+          type: 'loop',
+          position,
+          data: { 
+            label: 'Loop',
+            inputArrayPath: '',
+          }
+        };
+        nodesToAdd.push(loopNode);
+      } else if (type === 'exportNode') {
+        const exportNode: Node = {
+          id: exportNodeId,
+          type: 'exportNode',
+          position,
+          data: {
+            label: 'Export Data',
+            exportFormat: 'csv',
+            fileName: 'exported-data',
+            includeTimestamp: true,
+            flatten: true,
+            customSeparator: ',',
+          }
+        };
+        nodesToAdd.push(exportNode);
       }
 
       if (nodesToAdd.length > 0) {
-          console.log('Nodes dropped: ', nodesToAdd, edgesToAdd);
-          nodesToAdd.forEach(n => addNode(n));
-          if (addEdge && edgesToAdd.length > 0) {
-              edgesToAdd.forEach(e => addEdge(e));
+         
+          nodesToAdd.forEach(n => zustandAddNode(n));
+          if (zustandAddEdge && edgesToAdd.length > 0) {
+              edgesToAdd.forEach(e => zustandAddEdge(e));
           }
       }
     },
-    [reactFlowInstance, addNode, addEdge]
+    [reactFlowInstance, zustandAddNode, zustandAddEdge]
   );
+
+  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (isNodeDragging || isPanning) {
+      return;
+    }
+
+    if (reactFlowWrapper.current) {
+      const rect = reactFlowWrapper.current.getBoundingClientRect();
+      setLocalCursorScreenPosition({
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      });
+    }
+
+    if (reactFlowInstance && onCursorMoveForRemote) {
+      const flowPosition = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+      onCursorMoveForRemote(flowPosition);
+    }
+  }, [reactFlowInstance, onCursorMoveForRemote, isNodeDragging, isPanning]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (!isNodeDragging && !isPanning) {
+      setLocalCursorScreenPosition(null);
+    }
+
+    if (onCursorMoveForRemote) {
+      onCursorMoveForRemote(null);
+    }
+  }, [onCursorMoveForRemote, isNodeDragging, isPanning]);
+
+  const onNodeDragStartCallback = useCallback(() => {
+    setIsNodeDragging(true);
+    setLocalCursorScreenPosition(null); 
+  }, []);
+
+  const onNodeDragStopCallback = useCallback(() => {
+    setIsNodeDragging(false);
+  }, []);
+
+  const onMoveStartCallback = useCallback(() => {
+    setIsPanning(true);
+    setLocalCursorScreenPosition(null);
+  }, []);
+
+  const onMoveEndCallback = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  const renderedRemoteCursors = useMemo(() => {
+    if (!reactFlowInstance) return null;
+
+    return remoteCursors.map(cursor => {
+      if (!cursor.position) return null;
+
+      const screenPosition = reactFlowInstance.flowToScreenPosition({ 
+        x: cursor.position.x, 
+        y: cursor.position.y 
+      });
+
+      return (
+        <FollowPointer 
+          key={cursor.userId} 
+          x={screenPosition.x} 
+          y={screenPosition.y} 
+          avatarUrl={cursor.avatarUrl}
+          displayNameForFallback={cursor.displayName}
+        />
+      );
+    }).filter(Boolean);
+  }, [remoteCursors, reactFlowInstance]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
         event.preventDefault();
-        console.log('[FlowCanvas] Ctrl+S detected. Attempting save...');
+        ('[FlowCanvas] Ctrl+S detected. Attempting save...');
         
         if (currentFlowId && !isSaving) {
-          console.log('[FlowCanvas] Calling saveCurrentFlow...');
+          ('[FlowCanvas] Calling saveCurrentFlow...');
           saveCurrentFlow(); 
         } else if (!currentFlowId) {
-          console.log('[FlowCanvas] Save aborted: Flow has no ID (needs Save As first).');
+          ('[FlowCanvas] Save aborted: Flow has no ID (needs Save As first).');
         } else if (isSaving) {
-          console.log('[FlowCanvas] Save aborted: Already saving.');
+          ('[FlowCanvas] Save aborted: Already saving.');
         }
       }
     };
@@ -195,11 +381,32 @@ function FlowCanvasInner() {
     };
   }, [saveCurrentFlow, currentFlowId, isSaving]);
 
+  // Log de diagnóstico para realtime
+ 
+
+  if (!isMounted) {
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+      </div>
+    );
+  }
+
+  const isDark = theme === 'dark';
+
   return (
-    <div className="h-full w-full" ref={reactFlowWrapper}>
+    <div
+      className={cn(
+        "h-full w-full relative",
+        (localCursorScreenPosition && !isNodeDragging && !isPanning) ? "hide-native-cursor" : ""
+      )}
+      ref={reactFlowWrapper}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={[...allNodesFromStore]}
+        edges={[...allEdgesFromStore]}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={handleConnect}
@@ -216,8 +423,10 @@ function FlowCanvasInner() {
         nodesDraggable={true}
         nodesConnectable={true}
         connectionMode={ConnectionMode.Loose}
-        selectionOnDrag={true}
-        panActivationKeyCode={'control'}
+        onNodeDragStart={onNodeDragStartCallback}
+        onNodeDragStop={onNodeDragStopCallback}
+        onMoveStart={onMoveStartCallback}
+        onMoveEnd={onMoveEndCallback}
         className={cn(
           "transition-colors duration-300",
           isDark ? "bg-neutral-900 dark-themed" : "bg-neutral-50"
@@ -227,13 +436,13 @@ function FlowCanvasInner() {
             nodeColor={(node) => {
                 switch (node.type) {
                   case 'httpRequest': 
-                    return isDark ? '#60a5fa' : '#3b82f6'; // Lighter blue in dark mode
+                    return isDark ? '#60a5fa' : '#3b82f6';
                   case 'jsonNode': 
-                    return isDark ? '#a3e635' : '#84cc16'; // Lighter lime in dark mode
+                    return isDark ? '#a3e635' : '#84cc16';
                   case 'selectFields': 
-                    return isDark ? '#fbbf24' : '#f59e0b'; // Lighter amber in dark mode
+                    return isDark ? '#fbbf24' : '#f59e0b';
                   default: 
-                    return isDark ? '#94a3b8' : '#64748b'; // Lighter slate in dark mode
+                    return isDark ? '#94a3b8' : '#64748b';
                 }
             }}
             nodeStrokeWidth={3}
@@ -253,6 +462,18 @@ function FlowCanvasInner() {
               : "bg-gradient-to-br from-neutral-50 to-white"
             }
         />
+        
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-[100]">
+            {renderedRemoteCursors}
+            {localCursorScreenPosition && !isNodeDragging && !isPanning && (
+              <FollowPointer
+                x={localCursorScreenPosition.x}
+                y={localCursorScreenPosition.y}
+                avatarUrl={user?.imageUrl}
+                displayNameForFallback={user?.fullName || user?.username}
+              />
+            )}
+        </div>
       </ReactFlow>
     </div>
   );
@@ -265,3 +486,5 @@ export function FlowCanvas() {
     </ReactFlowProvider>
   );
 }
+
+FlowCanvas.displayName = 'FlowCanvas';

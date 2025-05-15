@@ -1,14 +1,13 @@
 'use client';;
 import { useState, useEffect, useCallback } from 'react';
 import { Node } from '@xyflow/react';
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Alert,
   AlertDescription,
 } from "@/components/ui/alert";
 import { PathListEditor, type PathEntry } from '@/components/shared/path-list-editor';
-import { useFlowStore, NodeResult } from '@/store/flow-store'; // Need updateNodeData and NodeResult
+import { useFlowStore } from '@/store/index';
+import { NodeResult } from '@/contracts/types';
 import { CheckCircle2, Loader2, AlertCircle, Info } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
@@ -61,9 +60,10 @@ export function SelectFieldsSettings({ node, executionResult }: SelectFieldsSett
   // --- Render Logic --- 
   return (
     <div className="space-y-5 font-sans">
-      {/* Label Setting - Cartoon Style with Dark Mode */}
+      {/* Label Setting - Replace Label and Input */}
       <div>
-        <Label 
+        {/* Replace Label */}
+        <label 
           htmlFor="label" 
           className={cn(
             "text-sm font-semibold mb-1.5 block",
@@ -71,15 +71,19 @@ export function SelectFieldsSettings({ node, executionResult }: SelectFieldsSett
           )}
         >
           Label
-        </Label>
-        <Input
+        </label>
+        {/* Replace Input */}
+        <input
           id="label"
           name="label"
+          type="text"
           value={label}
           onChange={handleLabelChange}
           onBlur={handleLabelBlur}
+          onMouseDown={(e) => e.stopPropagation()}
           className={cn(
-            "nodrag w-full rounded-lg focus:outline-none h-10 px-3 text-sm shadow-sm",
+            "w-full rounded-lg focus:outline-none h-10 px-3 text-sm shadow-sm",
+            "allow-text-selection",
             isDark 
               ? "bg-neutral-800 border-2 border-amber-500/70 text-white focus:border-amber-400 placeholder:text-blue-200/50" 
               : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-amber-500"

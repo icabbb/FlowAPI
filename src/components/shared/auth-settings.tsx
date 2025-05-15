@@ -2,9 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -181,7 +178,7 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
     <div className="space-y-4">
       <Alert className={cn(
         "px-3 py-2",
-        isDark ? "bg-blue-900/20 border-blue-800/40" : "bg-cyan-50 border-cyan-100"
+        isDark ? "bg-[#0f172acc] border-blue-800/40" : "bg-cyan-50 border-cyan-100"
       )}>
         <AlertDescription className={cn(
           "text-xs",
@@ -193,45 +190,50 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
       
       <div className="space-y-3">
         <div>
-          <Label htmlFor="username" className={cn(
+          <label htmlFor="username" className={cn(
             "text-sm font-medium mb-1.5 block",
             isDark ? "text-blue-200" : "text-neutral-700"
           )}>
             Username
-          </Label>
-          <Input
+          </label>
+          <input
             id="username"
             name="username"
+            type="text"
             value={config.username}
             onChange={handleInputChange}
+            onMouseDown={(e) => e.stopPropagation()}
             placeholder="Enter username"
             className={cn(
-              "nodrag w-full rounded-lg focus:outline-none h-9 px-3 text-sm shadow-sm",
+              "w-full rounded-lg focus:outline-none h-9 px-3 text-sm shadow-sm",
+              "allow-text-selection",
               isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
+                ? "bg-[#0f172acc] border-2 border-blue-500 text-white focus:border-blue-400" 
                 : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
             )}
           />
         </div>
         
         <div>
-          <Label htmlFor="password" className={cn(
+          <label htmlFor="password" className={cn(
             "text-sm font-medium mb-1.5 block",
             isDark ? "text-blue-200" : "text-neutral-700"
           )}>
             Password
-          </Label>
-          <Input
+          </label>
+          <input
             id="password"
             name="password"
             type="password"
             value={config.password}
             onChange={handleInputChange}
+            onMouseDown={(e) => e.stopPropagation()}
             placeholder="Enter password"
             className={cn(
-              "nodrag w-full rounded-lg focus:outline-none h-9 px-3 text-sm shadow-sm",
+              "w-full rounded-lg focus:outline-none h-9 px-3 text-sm shadow-sm",
+              "allow-text-selection",
               isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
+                ? "bg-[#0f172acc] border-2 border-blue-500 text-white focus:border-blue-400" 
                 : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
             )}
           />
@@ -256,23 +258,24 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
       </Alert>
       
       <div>
-        <Label htmlFor="token" className={cn(
+        <label htmlFor="token" className={cn(
           "text-sm font-medium mb-1.5 block",
           isDark ? "text-blue-200" : "text-neutral-700"
         )}>
           Token
-        </Label>
-        <Input
+        </label>
+        <input
           id="token"
           name="token"
+          type="text"
           value={config.token}
           onChange={handleInputChange}
-          placeholder="Enter token"
+          onMouseDown={(e) => e.stopPropagation()}
+          placeholder="Paste your Bearer Token here"
           className={cn(
-            "nodrag w-full rounded-lg focus:outline-none h-9 px-3 text-sm shadow-sm",
-            isDark 
-              ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
-              : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
+            "min-h-[80px] font-mono",
+            "allow-text-selection",
+            isDark ? "bg-[#0f172acc] border-2 border-blue-500 text-white focus:border-blue-400" : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
           )}
         />
       </div>
@@ -284,57 +287,51 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="key" className={cn(
+          <label htmlFor="key" className={cn(
             "text-sm font-medium mb-1.5 block",
             isDark ? "text-blue-200" : "text-neutral-700"
           )}>
             Key Name
-          </Label>
-          <Input
+          </label>
+          <input
             id="key"
             name="key"
+            type="text"
             value={config.key}
             onChange={handleInputChange}
-            placeholder="X-API-Key"
-            className={cn(
-              "nodrag w-full rounded-lg focus:outline-none h-9 px-3 text-sm shadow-sm",
-              isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
-                : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
-            )}
+            onMouseDown={(e) => e.stopPropagation()}
+            placeholder="e.g., X-API-Key or api_key"
+            className={getInputClass()}
           />
         </div>
         
         <div>
-          <Label htmlFor="value" className={cn(
+          <label htmlFor="value" className={cn(
             "text-sm font-medium mb-1.5 block",
             isDark ? "text-blue-200" : "text-neutral-700"
           )}>
             Key Value
-          </Label>
-          <Input
+          </label>
+          <input
             id="value"
             name="value"
+            type="text"
             value={config.value}
             onChange={handleInputChange}
-            placeholder="your-api-key"
-            className={cn(
-              "nodrag w-full rounded-lg focus:outline-none h-9 px-3 text-sm shadow-sm",
-              isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
-                : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
-            )}
+            onMouseDown={(e) => e.stopPropagation()}
+            placeholder="Your API Key Value"
+            className={getInputClass()}
           />
         </div>
       </div>
       
       <div>
-        <Label htmlFor="addTo" className={cn(
+        <label htmlFor="addTo" className={cn(
           "text-sm font-medium mb-1.5 block",
           isDark ? "text-blue-200" : "text-neutral-700"
         )}>
           Add To
-        </Label>
+        </label>
         <Select 
           value={config.addTo} 
           onValueChange={(value) => handleSelectChange('addTo', value)}
@@ -342,9 +339,9 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
           <SelectTrigger 
             id="addTo" 
             className={cn(
-              "nodrag h-9 focus:outline-none rounded-lg shadow-sm",
+              "h-9 focus:outline-none rounded-lg shadow-sm",
               isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400"
+                ? "bg-[#0f172acc] border-2 border-blue-500 text-white focus:border-blue-400"
                 : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
             )}
           >
@@ -354,7 +351,7 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
             className={cn(
               "rounded-lg shadow-md",
               isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white" 
+                ? "bg-[#0f172acc] border-2 border-blue-500 text-white" 
                 : "bg-white border-2 border-neutral-800 text-neutral-800"
             )}
           >
@@ -403,12 +400,12 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
       
       <div className="space-y-3">
         <div>
-          <Label htmlFor="grantType" className={cn(
+          <label htmlFor="grantType" className={cn(
             "text-sm font-semibold mb-1.5 block",
             isDark ? "text-blue-200" : "text-neutral-700"
           )}>
             Grant Type
-          </Label>
+          </label>
           <Select 
             value={config.grantType} 
             onValueChange={(value) => handleSelectChange('grantType', value)}
@@ -416,9 +413,9 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
             <SelectTrigger 
               id="grantType" 
               className={cn(
-                "nodrag h-10 focus:outline-none rounded-lg shadow-sm",
+                "h-10 focus:outline-none rounded-lg shadow-sm",
                 isDark 
-                  ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400"
+                  ? "bg-[#0f172acc] border-2 border-blue-500 text-white focus:border-blue-400"
                   : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
               )}
             >
@@ -428,7 +425,7 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
               className={cn(
                 "rounded-lg shadow-md",
                 isDark 
-                  ? "bg-neutral-800 border-2 border-blue-500 text-white" 
+                  ? "bg-[#0f172acc] border-2 border-blue-500 text-white" 
                   : "bg-white border-2 border-neutral-800 text-neutral-800"
               )}
             >
@@ -464,93 +461,80 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
         </div>
         
         <div>
-          <Label htmlFor="accessTokenUrl" className={cn(
+          <label htmlFor="accessTokenUrl" className={cn(
             "text-sm font-semibold mb-1.5 block",
             isDark ? "text-blue-200" : "text-neutral-700"
           )}>
             Access Token URL
-          </Label>
-          <Input
+          </label>
+          <input
             id="accessTokenUrl"
             name="accessTokenUrl"
+            type="text"
             value={config.accessTokenUrl}
             onChange={handleInputChange}
-            placeholder="https://auth.example.com/oauth/token"
-            className={cn(
-              "nodrag w-full rounded-lg focus:outline-none h-10 px-3 text-sm shadow-sm",
-              isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
-                : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
-            )}
+            onMouseDown={(e) => e.stopPropagation()}
+            placeholder="https://example.com/oauth/token"
+            className={getInputClass()}
           />
         </div>
         
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="clientId" className={cn(
+            <label htmlFor="clientId" className={cn(
               "text-sm font-semibold mb-1.5 block",
               isDark ? "text-blue-200" : "text-neutral-700"
             )}>
               Client ID
-            </Label>
-            <Input
+            </label>
+            <input
               id="clientId"
               name="clientId"
+              type="text"
               value={config.clientId}
               onChange={handleInputChange}
-              placeholder="Client ID"
-              className={cn(
-                "nodrag w-full rounded-lg focus:outline-none h-10 px-3 text-sm shadow-sm",
-                isDark 
-                  ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
-                  : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
-              )}
+              onMouseDown={(e) => e.stopPropagation()}
+              placeholder="OAuth2 Client ID"
+              className={getInputClass()}
             />
           </div>
           
           <div>
-            <Label htmlFor="clientSecret" className={cn(
+            <label htmlFor="clientSecret" className={cn(
               "text-sm font-semibold mb-1.5 block",
               isDark ? "text-blue-200" : "text-neutral-700"
             )}>
               Client Secret
-            </Label>
-            <Input
+            </label>
+            <input
               id="clientSecret"
               name="clientSecret"
               type="password"
               value={config.clientSecret}
               onChange={handleInputChange}
-              placeholder="Client Secret"
-              className={cn(
-                "nodrag w-full rounded-lg focus:outline-none h-10 px-3 text-sm shadow-sm",
-                isDark 
-                  ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
-                  : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
-              )}
+              onMouseDown={(e) => e.stopPropagation()}
+              placeholder="OAuth2 Client Secret"
+              className={getInputClass()}
             />
           </div>
         </div>
         
         <div>
-          <Label htmlFor="scopes" className={cn(
+          <label htmlFor="scopes" className={cn(
             "text-sm font-semibold mb-1.5 block",
             isDark ? "text-blue-200" : "text-neutral-700"
           )}>
             Scopes (space separated)
-          </Label>
-          <Input
+          </label>
+          <input
             id="scopes"
             name="scopes"
+            type="text"
             value={config.scopes}
             onChange={handleInputChange}
-            placeholder="profile email"
-            className={cn(
-              "nodrag w-full rounded-lg focus:outline-none h-10 px-3 text-sm shadow-sm",
-              isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
-                : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
-            )}
+            onMouseDown={(e) => e.stopPropagation()}
+            placeholder="e.g., read write profile"
+            className={getInputClass()}
           />
         </div>
       </div>
@@ -578,47 +562,40 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
       
       <div className="space-y-3">
         <div>
-          <Label htmlFor="username" className={cn(
+          <label htmlFor="username" className={cn(
             "text-sm font-semibold mb-1.5 block",
             isDark ? "text-blue-200" : "text-neutral-700"
           )}>
             Username
-          </Label>
-          <Input
+          </label>
+          <input
             id="username"
             name="username"
+            type="text"
             value={config.username}
             onChange={handleInputChange}
+            onMouseDown={(e) => e.stopPropagation()}
             placeholder="Enter username"
-            className={cn(
-              "nodrag w-full rounded-lg focus:outline-none h-10 px-3 text-sm shadow-sm",
-              isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
-                : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
-            )}
+            className={getInputClass()}
           />
         </div>
         
         <div>
-          <Label htmlFor="password" className={cn(
+          <label htmlFor="password" className={cn(
             "text-sm font-semibold mb-1.5 block",
             isDark ? "text-blue-200" : "text-neutral-700"
           )}>
             Password
-          </Label>
-          <Input
+          </label>
+          <input
             id="password"
             name="password"
             type="password"
             value={config.password}
             onChange={handleInputChange}
+            onMouseDown={(e) => e.stopPropagation()}
             placeholder="Enter password"
-            className={cn(
-              "nodrag w-full rounded-lg focus:outline-none h-10 px-3 text-sm shadow-sm",
-              isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400" 
-                : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
-            )}
+            className={getInputClass()}
           />
         </div>
       </div>
@@ -628,7 +605,7 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
   return (
     <div className="space-y-4">
       <div>
-        <Label 
+        <label 
           htmlFor="authType" 
           className={cn(
             "text-sm font-medium mb-1.5 block",
@@ -636,7 +613,7 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
           )}
         >
           Authentication Type
-        </Label>
+        </label>
         <Select 
           value={localConfig.type} 
           onValueChange={handleAuthTypeChange}
@@ -644,9 +621,9 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
           <SelectTrigger 
             id="authType" 
             className={cn(
-              "nodrag h-10 focus:outline-none rounded-lg shadow-sm", 
+              "h-10 focus:outline-none rounded-lg shadow-sm", 
               isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400"
+                ? "bg-[#0f172acc] border-2 border-blue-500 text-white focus:border-blue-400"
                 : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
             )}
           >
@@ -656,7 +633,7 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
             className={cn(
               "rounded-lg shadow-md",
               isDark 
-                ? "bg-neutral-800 border-2 border-blue-500 text-white" 
+                ? "bg-[#0f172acc] border-2 border-blue-500 text-white" 
                 : "bg-white border-2 border-neutral-800 text-neutral-800"
             )}
           >
@@ -721,11 +698,19 @@ export function AuthSettings({ authConfig, onChange }: AuthSettingsProps) {
       <div className={cn(
         "space-y-4 p-4 rounded-lg shadow-sm border-2",
         isDark 
-          ? "bg-neutral-800 border-blue-500" 
+          ? "bg-[#0f172acc] border-blue-500" 
           : "bg-white border-neutral-800"
       )}>
         {renderAuthForm()}
       </div>
     </div>
+  );
+}
+
+function getInputClass() {
+  return cn(
+    "w-full rounded-lg focus:outline-none h-9 px-3 text-sm shadow-sm",
+    "allow-text-selection",
+    "bg-[#0f172acc] border-2 border-blue-500 text-white focus:border-blue-400"
   );
 } 

@@ -7,7 +7,6 @@ import {
   Alert,
   AlertDescription,
 } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
 import {
   Download,
   AlertCircle,
@@ -20,10 +19,12 @@ import {
   Info,
   Filter,
 } from 'lucide-react';
-import { NodeResult, useFlowStore } from '@/store/flow-store'; // Need NodeResult and results
+import { useFlowStore } from '@/store/index';
+ // Need NodeResult and results
 import { JSONPath } from 'jsonpath-plus';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
+import { NodeResult } from '@/contracts/types';
 
 // Define view types
 type JsonViewType = 'pretty' | 'raw' | 'preview';
@@ -143,7 +144,9 @@ export function JsonNodeSettings({ node, executionResult }: JsonNodeSettingsProp
   
   // Determine content type and set initial view
   const contentType = useMemo(() => {
-    return getHeaderValue(executionResult?.headers, 'content-type') || 'application/json'; // Default to json if no header
+    // Ensure headers are undefined if nullish, satisfying getHeaderValue's expected type
+    const headers = executionResult?.headers ?? undefined; 
+    return getHeaderValue(headers, 'content-type') || 'application/json'; // Default to json if no header
   }, [executionResult?.headers]);
 
   useEffect(() => {
@@ -200,7 +203,7 @@ export function JsonNodeSettings({ node, executionResult }: JsonNodeSettingsProp
 
     } catch (e: any) {
       // Catch errors from JSONPath library (e.g., invalid syntax)
-      console.error("JSONPath error in Settings Panel:", e);
+      
       setJsonPathError(e.message || 'Invalid JSON path syntax.');
       // Return an error message instead of the original string on path error
       return `Error: Invalid JSONPath expression`; 
@@ -385,18 +388,20 @@ export function JsonNodeSettings({ node, executionResult }: JsonNodeSettingsProp
         </Button>
       </div>
       
-      {/* Search and JSONPath Inputs - Cartoon Style with Dark Mode */}
+      {/* Search and JSONPath Inputs - Replace Shadcn Inputs */}
       {(viewType === 'pretty' || viewType === 'raw') && (
          <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-grow">
                 <Search className={cn("absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4", isDark ? "text-blue-300/50" : "text-neutral-400")} />
-                <Input
+                <input
                     type="text"
                     placeholder="Search content..."
                     value={searchTerm}
                     onChange={handleSearchChange}
+                    onMouseDown={(e) => e.stopPropagation()}
                     className={cn(
-                      "nodrag w-full rounded-lg focus:outline-none h-10 pl-9 pr-3 text-sm shadow-sm",
+                      "w-full rounded-lg focus:outline-none h-10 pl-9 pr-3 text-sm shadow-sm",
+                      "allow-text-selection",
                       isDark 
                         ? "bg-neutral-800 border-2 border-blue-500 text-white focus:border-blue-400 placeholder:text-blue-200/50" 
                         : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
@@ -406,13 +411,15 @@ export function JsonNodeSettings({ node, executionResult }: JsonNodeSettingsProp
              {viewType === 'pretty' && contentType.includes('json') && (
                  <div className="relative flex-grow">
                      <Filter className={cn("absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4", isDark ? "text-blue-300/50" : "text-neutral-400")} />
-                    <Input
+                    <input
                         type="text"
                         placeholder="Filter with JSONPath (e.g., $.data)"
                         value={jsonPath}
                         onChange={handleJsonPathChange}
+                        onMouseDown={(e) => e.stopPropagation()}
                         className={cn(
-                            "nodrag w-full rounded-lg focus:outline-none h-10 pl-9 pr-3 text-sm font-mono shadow-sm",
+                            "w-full rounded-lg focus:outline-none h-10 pl-9 pr-3 text-sm font-mono shadow-sm",
+                            "allow-text-selection",
                             isDark 
                               ? "bg-neutral-800 border-2 text-white focus:border-blue-400 placeholder:text-blue-200/50" 
                               : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500",

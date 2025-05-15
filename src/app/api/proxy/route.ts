@@ -17,178 +17,128 @@ function entriesToRecord(entries: { key: string; value: string; enabled: boolean
 //   [key: string]: any;
 // }
 
+// Basic environment variable resolver for the proxy
+function resolveEnvVariableInProxy(value: string | undefined): string | undefined {
+  if (!value || !value.includes('{{env.')) return value;
+  return value.replace(/\{\{\s*env\.(.*?)\s*\}\}/g, (_match, varName) => {
+    return process.env[varName] || _match; // Use environment variable or keep original
+  });
+}
+
 export async function POST(request: NextRequest) {
+  let rawBody = ''; // Variable to store raw body for logging
   try {
-    const requestData = await request.json();
-    console.log('Proxy received request:', {
+    // --- Debugging Step: Read raw body first ---
+    rawBody = await request.text();
+
+
+    // --- Now parse the raw body text ---
+    const requestData = JSON.parse(rawBody);
+
+    // --- End Debugging Step ---
+
+    // Original line (commented out for now):
+    // const requestData = await request.json();
+
+    console.log('[Proxy] Parsed request data:', {
       ...requestData,
-      body: requestData.body ? '[BODY]' : undefined, // No mostrar el body en logs por seguridad
+      // Log body type and a snippet for debugging, avoid logging full sensitive body
+      body: requestData.body ? `[Type: ${typeof requestData.body}] ${JSON.stringify(requestData.body).substring(0, 50)}...` : undefined,
     });
 
-    const { 
+    const {
       url,
       method = 'GET',
       headers: headerEntries,
       queryParams: queryParamEntries,
-      body,
+      body, // Use the body directly as received from execution-service
       bodyType = 'none',
-      // auth, // Removed unused auth variable
     } = requestData;
 
     if (!url || typeof url !== 'string') {
       return NextResponse.json({ error: 'Invalid URL provided' }, { status: 400 });
     }
 
-    // Define a base URL for relative paths
+    // Define a base URL for relative paths (remains useful)
     const defaultBaseUrl = process.env.DEFAULT_PROXY_BASE_URL || 'https://jsonplaceholder.typicode.com';
-
-    // Check if the URL is relative (starts with '/') and construct the full URL
     let targetUrl: string;
     try {
-      // Try parsing directly - if it works, it's already absolute
       new URL(url);
       targetUrl = url;
-    } catch /* (e) - Removed unused e */ {
-      // If parsing fails, assume it's relative and prepend the base URL
+    } catch {
       if (url.startsWith('/')) {
         targetUrl = defaultBaseUrl + url;
       } else {
-        // If it doesn't start with '/' and isn't absolute, it's truly invalid
         return NextResponse.json({ error: 'Invalid relative URL format. Must start with / or be absolute.' }, { status: 400 });
       }
     }
-    
-    // Use targetUrl for constructing the final URL with query parameters
+
     const finalUrl = new URL(targetUrl);
     const queryParams = entriesToRecord(queryParamEntries);
     Object.keys(queryParams).forEach(key => finalUrl.searchParams.append(key, queryParams[key]));
 
-    // Preparar Headers
     const headers = new Headers(entriesToRecord(headerEntries));
-    // Eliminar headers que el navegador/servidor gestionan automáticamente si se envían desde el cliente
     headers.delete('host');
-    headers.delete('content-length'); 
-    
-    // Ahora procesamos las cabeceras especiales de autenticación
-    // (aunque la mayoría del procesamiento ya se realizó en el frontend)
-    let digestAuthCredentials: { username: string; password: string; realm?: string } | null = null;
-    let oauth2Credentials: any = null;
+    headers.delete('content-length');
 
-    // Extraer y eliminar cabeceras especiales para manejo del proxy
+    // --- Simplified Authentication Header Handling ---
+    // Remove specific proxy handling for digest/oauth2 for now,
+    // as frontend prepares the correct headers (like Authorization: Bearer ...)
     if (headers.has('X-Auth-Type')) {
-      const authType = headers.get('X-Auth-Type');
-      headers.delete('X-Auth-Type');
-
-      if (authType === 'digest') {
-        // Extraer credenciales de digest auth
-        digestAuthCredentials = {
-          username: headers.get('X-Auth-Username') || '',
-          password: headers.get('X-Auth-Password') || '',
-        };
-
-        if (headers.has('X-Auth-Realm')) {
-          digestAuthCredentials.realm = headers.get('X-Auth-Realm') || undefined;
-          headers.delete('X-Auth-Realm');
-        }
-
-        // Eliminar cabeceras especiales
+        // Just delete the helper headers without complex logic
+        headers.delete('X-Auth-Type');
         headers.delete('X-Auth-Username');
         headers.delete('X-Auth-Password');
-      } 
-      else if (authType === 'oauth2') {
-        // Extraer información OAuth2
-        oauth2Credentials = {
-          grantType: headers.get('X-OAuth-Grant-Type'),
-          clientId: headers.get('X-OAuth-Client-ID'),
-          clientSecret: headers.get('X-OAuth-Client-Secret'),
-          tokenUrl: headers.get('X-OAuth-Token-URL'),
-          scope: headers.get('X-OAuth-Scope')
-        };
-
-        // Eliminar cabeceras especiales
+        headers.delete('X-Auth-Realm');
         headers.delete('X-OAuth-Grant-Type');
         headers.delete('X-OAuth-Client-ID');
         headers.delete('X-OAuth-Client-Secret');
         headers.delete('X-OAuth-Token-URL');
         headers.delete('X-OAuth-Scope');
-        
-        // Si tenemos credenciales OAuth2 completas, intentar obtener un token
-        if (oauth2Credentials.clientId && oauth2Credentials.clientSecret && oauth2Credentials.tokenUrl) {
-          try {
-            // En un entorno real, aquí realizaríamos la solicitud de token OAuth2
-            // Para este ejemplo, solo devolvemos un error informando al usuario
-            // que esta funcionalidad requiere implementación específica adicional
-            return NextResponse.json({ 
-              error: 'OAuth2 token acquisition not implemented in this proxy. Please obtain a token manually and use Bearer auth.' 
-            }, { status: 501 });
-          } catch (error) {
-            return NextResponse.json({ 
-              error: `Failed to acquire OAuth2 token: ${(error as Error).message}` 
-            }, { status: 500 });
-          }
-        }
-      }
+    }
+    // --- End Simplified Auth ---
+
+    // Set Content-Type based on bodyType if body exists
+    // This might override a Content-Type set by the user, which is standard proxy behavior
+    if (body !== undefined && body !== null) {
+        if (bodyType === 'json') {
+            headers.set('Content-Type', 'application/json');
+        } else if (bodyType === 'text') {
+            headers.set('Content-Type', 'text/plain');
+        } // If bodyType is 'none' or other, don't automatically set Content-Type
     }
 
-    // Manejar Digest Auth si está presente
-    if (digestAuthCredentials) {
-      try {
-        // En un entorno real, aquí implementaríamos el algoritmo completo de Digest Auth
-        // Para este ejemplo, solo devolvemos un error informando al usuario
-        // que esta funcionalidad requiere implementación específica adicional
-        return NextResponse.json({ 
-          error: 'Digest authentication not implemented in this proxy. Use Basic or Bearer authentication instead.' 
-        }, { status: 501 });
-      } catch (error) {
-        return NextResponse.json({ 
-          error: `Digest auth failed: ${(error as Error).message}` 
-        }, { status: 500 });
-      }
+    // --- Prepare Body for fetch (Simplified) ---
+    let requestBodyForFetch: BodyInit | null | undefined;
+    if (method !== 'GET' && method !== 'HEAD' && body !== undefined && body !== null) {
+        // If the received body is an object/array, stringify it.
+        // If it's already a string (e.g., from text input), use it directly.
+        requestBodyForFetch = typeof body === 'string' ? body : JSON.stringify(body);
+    } else {
+        requestBodyForFetch = undefined; // No body for GET/HEAD or if body is null/undefined
     }
+    // --- End Body Preparation ---
 
-    // Añadir Content-Type según bodyType
-    if (bodyType === 'json' && body) {
-        headers.set('Content-Type', 'application/json');
-    } else if (bodyType === 'text' && body) {
-        headers.set('Content-Type', 'text/plain');
-    }
 
-    // Preparar Body
-    let requestBody: BodyInit | null | undefined;
-    if (method !== 'GET' && method !== 'HEAD') {
-        if (bodyType === 'json' || bodyType === 'text') {
-            requestBody = body;
-        } // Podríamos añadir soporte para form-data, etc. aquí
-    }
-    
-    // Log the final URL before fetching
-    console.log(`Proxy making fetch to: ${method} ${finalUrl.toString()}`);
 
-    // Realizar la petición fetch desde el servidor
     const response = await fetch(finalUrl.toString(), {
       method: method,
       headers: headers,
-      body: requestBody,
-      // Importante: deshabilitar caché para obtener respuestas frescas
+      body: requestBodyForFetch,
       cache: 'no-store',
-      // Podríamos necesitar configurar redirect, referrerPolicy, etc.
     });
 
-    console.log(`Proxy received response status: ${response.status}`);
 
-    // Procesar la respuesta
     const responseHeaders: Record<string, string> = {};
     response.headers.forEach((value, key) => {
       responseHeaders[key] = value;
     });
 
-    // Intentar leer como texto primero, luego intentar parsear como JSON
     let responseBody: any;
     const responseText = await response.text();
     try {
         responseBody = JSON.parse(responseText);
-    } catch /* (e) - Removed unused e */ {
-        // Si falla el parseo JSON, devolver como texto plano
+    } catch {
         responseBody = responseText;
     }
 
@@ -200,12 +150,19 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("Proxy Error:", error);
-    // Devolver error genérico o más específico si es posible
+    // Log the raw body specifically if JSON parsing fails here
+    if (error instanceof SyntaxError && error.message.includes('JSON')) {
+       return NextResponse.json({ error: `Proxy failed to parse incoming JSON request body. Check client request format. Error: ${error.message}. Raw body: ${rawBody.substring(0, 200)}...` }, { status: 400 });
+    }
+    // Keep the check for body-parser specific errors (though less likely now)
+    if (error instanceof SyntaxError && error.message.includes('JSON') && (error as any).body) {
+       return NextResponse.json({ error: `Proxy failed to parse incoming JSON request body via internal parser. Error: ${error.message}` }, { status: 400 });
+    }
+    
     let errorMessage = 'Proxy failed to execute request.';
-    if (error.cause) { // Node fetch a menudo incluye detalles en 'cause'
+    if (error.cause) {
         errorMessage += ` Cause: ${error.cause.code || error.cause.message || 'Unknown'}`;
     }
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
-} 
+}

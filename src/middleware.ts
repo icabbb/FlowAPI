@@ -1,11 +1,30 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)', '/'])
+// Rutas que no requieren autenticación
+const isPublicRoute = createRouteMatcher([
+  '/sign-in(.*)', 
+  '/sign-up(.*)', 
+  '/',
+  '/api/public-flow(.*)', // Mantener acceso público a las API de flujos compartidos
+  '/share(.*)', // Mantener acceso público a las vistas de flujos compartidos
+])
+
+// Rutas que deben ser protegidas pero necesitan un manejo especial
+const protectedApiRoutes = [
+  '/api/*',
+  '/api/library/flows'
+]
 
 export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
-    await auth.protect()
+  const path = new URL(req.url).pathname;
+
+  // Si la ruta es pública, permitirla sin autenticación
+  if (isPublicRoute(req)) {
+    return;
   }
+
+  // Proteger todas las demás rutas
+  await auth.protect();
 })
 
 export const config = {

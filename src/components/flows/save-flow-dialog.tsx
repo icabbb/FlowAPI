@@ -1,186 +1,228 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useFlowStore } from '@/store/flow-store';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Loader2, Save } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, useEffect, useMemo } from 'react';
 import { useTheme } from 'next-themes';
+import { useFlowStore } from '@/store';
+import { generateSlug } from '@/lib/utils';
 
-// Define cartoon button styles
-const baseCartoonButtonStyle = "gap-1 rounded-xl border-2 border-neutral-800 px-4 py-2 text-sm font-semibold shadow-sm transition-all duration-200 transform hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60";
-const primaryCartoonButtonStyle = `${baseCartoonButtonStyle} bg-blue-500 hover:bg-blue-600 text-white focus:ring-blue-500`;
-const outlineCartoonButtonStyle = `${baseCartoonButtonStyle} bg-white hover:bg-neutral-100 text-neutral-800 focus:ring-blue-500`;
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+    DialogClose,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem,
+    SelectSeparator,
+} from '@/components/ui/select';
+import { PlusCircle, Save, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-// Dark mode cartoon button styles
-const darkBaseCartoonButtonStyle = "gap-1 rounded-xl border-2 border-blue-400 px-4 py-2 text-sm font-semibold shadow-md transition-all duration-200 transform hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 disabled:opacity-60";
-const darkPrimaryCartoonButtonStyle = `${darkBaseCartoonButtonStyle} bg-blue-600 hover:bg-blue-500 text-white focus:ring-blue-400`;
-const darkOutlineCartoonButtonStyle = `${darkBaseCartoonButtonStyle} bg-neutral-800 hover:bg-neutral-700 text-blue-300 hover:text-blue-200 focus:ring-blue-400`;
+/* ────────────── cartoon helpers con fondo unificado ────────────── */
+const useCartoon = () => {
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
 
-interface SaveFlowDialogProps {
+  // FONDO UNIFICADO
+  const bg = dark ? 'bg-[#0f172a]' : 'bg-white';
+  const border = dark ? 'border-blue-600' : 'border-slate-900';
+  const shadow = dark
+    ? 'shadow-[4px_4px_0_#172554]'
+    : 'shadow-[4px_4px_0_#0f172a]';
+
+  const btn = (
+    variant: 'primary' | 'outline' = 'outline',
+  ) =>
+    cn(
+      'rounded-xl border-[2px] font-semibold flex items-center gap-1.5 transition-transform duration-150 hover:scale-[1.03] disabled:opacity-60 px-4 py-2 h-9 text-sm',
+      shadow,
+      bg,
+      border,
+      variant === 'primary' &&
+        (dark
+          ? 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white'
+          : 'bg-blue-500 hover:bg-blue-600 border-slate-900 text-white'),
+      variant === 'outline' &&
+        (dark
+          ? 'bg-[#1e293b] hover:bg-[#334155] text-blue-100 border-blue-500'
+          : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-900'),
+    );
+
+  const input = cn(
+    'w-full h-10 px-3 rounded-lg border-[2px] shadow-inner text-sm focus:ring-2',
+    bg,
+    border,
+    dark
+      ? 'text-blue-100 placeholder:text-blue-300 focus:ring-blue-400'
+      : 'text-slate-800 placeholder:text-slate-400 focus:ring-blue-500',
+  );
+  const textarea = cn(input,bg, 'min-h-[70px]', dark ? 'bg-blue-600' : '');
+  const dlg = cn(
+    'p-0 sm:max-w-lg rounded-2xl border-[3px] shadow-xl overflow-hidden',
+    bg,
+    border,
+    shadow,
+    dark ? 'text-blue-100' : ''
+  );
+
+  // Para <SelectTrigger> y otros, solo usar input
+  return { dark, btn, input, textarea, dlg, bg };
+};
+
+/* ──────────────────────── SaveFlowDialog ──────────────────────── */
+
+interface Props {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function SaveFlowDialog({ isOpen, onOpenChange }: SaveFlowDialogProps) {
-  const { 
-    saveCurrentFlow, 
-    isSaving, 
-    currentFlowName, 
+export function SaveFlowDialog({ isOpen, onOpenChange }: Props) {
+  const {
+    saveCurrentFlow,
+    isSaving,
+    currentFlowId,
+    currentFlowName,
     currentFlowDescription,
-    loadSavedFlows // Needed to refresh list after save
+    currentFlowCollection,
+    currentFlowSlug,
+    savedFlows,
+    loadSavedFlows,
   } = useFlowStore();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
 
+  const { btn, input, textarea, dlg, bg } = useCartoon();
+
+  // State fields
+  const [name, setName] = useState('');
+  const [desc, setDesc] = useState('');
+  const [coll, setColl] = useState('');
+  const [customSlug, setCustomSlug] = useState('');
+  const [newColl, setNewColl] = useState(false);
+
+  // Collections list
+  const collections = useMemo(() => {
+    const set = new Set<string>();
+    savedFlows.forEach(f => f.collections && set.add(f.collections));
+    return [...set].sort();
+  }, [savedFlows]);
+
+  // Reset values when open
   useEffect(() => {
     if (isOpen) {
-      // Initialize with current flow details when dialog opens
       setName(currentFlowName || 'New Flow');
-      setDescription(currentFlowDescription || '');
+      setDesc(currentFlowDescription || '');
+      setColl(currentFlowCollection || '');
+      setCustomSlug(currentFlowSlug || '');
+      setNewColl(false);
     }
-  }, [isOpen, currentFlowName, currentFlowDescription]);
+  }, [isOpen, currentFlowName, currentFlowDescription, currentFlowCollection, currentFlowSlug]);
 
+  // Save action
   const handleSave = async () => {
-    try {
-      const savedFlow = await saveCurrentFlow(name, description);
-      if (savedFlow) {
-        await loadSavedFlows(); // Refresh the list in FlowManager
-        onOpenChange(false); // Close the dialog on successful save
-      }
-    } catch (error) {
-      console.error("Failed to save flow:", error);
-      // Handle error (e.g., show toast notification)
-    }
+    if (!name.trim()) return;
+    await saveCurrentFlow(name, desc, coll || null, undefined, undefined, customSlug.trim());
+    await loadSavedFlows();
+    onOpenChange(false);
   };
 
-  // Close dialog handler
-  const handleClose = () => {
-    if (!isSaving) {
-      onOpenChange(false);
-    }
-  };
+  // Dialog close
+  const close = () => !isSaving && onOpenChange(false);
 
+  /* ─────────────── render ─────────────── */
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      {/* Dialog Content: Cartoon Style with Dark Mode Support */}
-      <DialogContent className={cn(
-        "sm:max-w-[480px] p-0 rounded-2xl shadow-lg",
-        isDark 
-          ? "bg-neutral-800 border-2 border-blue-500"
-          : "bg-white border-2 border-neutral-800"
-      )}>
-        {/* Dialog Header: Cartoon Style with Dark Mode Support */}
-        <DialogHeader className={cn(
-          "p-6 pb-4 border-b-2",
-          isDark
-            ? "border-blue-500"
-            : "border-neutral-800"
-        )}>
-          <DialogTitle className={cn(
-            "text-xl font-bold",
-            isDark ? "text-white" : "text-neutral-800"
-          )}>
-            Save Flow As
-          </DialogTitle>
-          <DialogDescription className={cn(
-            "text-sm pt-1",
-            isDark ? "text-blue-200" : "text-neutral-600"
-          )}>
-            Enter a name and optional description for your flow.
+    <Dialog open={isOpen} onOpenChange={close}>
+      <DialogContent className={dlg}>
+        <DialogHeader className="p-5 border-b-[2px]">
+          <DialogTitle>Save Current Flow</DialogTitle>
+          <DialogDescription>
+            Assign a name and (optional) collection.
           </DialogDescription>
         </DialogHeader>
-        {/* Form Area: Cartoon Style with Dark Mode Support */}
-        <div className="p-6 space-y-5">
-          <div className="space-y-2">
-             {/* Label: Cartoon Style with Dark Mode Support */}
-            <Label htmlFor="name" className={cn(
-              "text-sm font-semibold",
-              isDark ? "text-blue-200" : "text-neutral-700"
-            )}>
-              Flow Name
-            </Label>
-            {/* Input: Cartoon Style with Dark Mode Support */}
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="My Awesome API Flow"
-              className={cn(
-                "nodrag w-full rounded-lg text-sm shadow-sm h-10 px-3 focus:outline-none",
-                isDark 
-                  ? "bg-neutral-700 border-2 border-blue-500 text-white focus:border-blue-400"
-                  : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
-              )}
-              disabled={isSaving}
-            />
+
+        <div className={cn('px-5 py-4 space-y-4', bg)}>
+          {/* Name */}
+          <div className="space-y-1.5">
+            <Label htmlFor="name">Name *</Label>
+            <Input id="name" className={input} value={name} onChange={e => setName(e.target.value)} disabled={isSaving} />
           </div>
-          <div className="space-y-2">
-             {/* Label: Cartoon Style with Dark Mode Support */}
-            <Label htmlFor="description" className={cn(
-              "text-sm font-semibold",
-              isDark ? "text-blue-200" : "text-neutral-700"
-            )}>
-              Description (Optional)
-            </Label>
-            {/* Input: Cartoon Style with Dark Mode Support */}
-            <Input
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe what this flow does"
-              className={cn(
-                "nodrag w-full rounded-lg text-sm shadow-sm h-10 px-3 focus:outline-none",
-                isDark 
-                  ? "bg-neutral-700 border-2 border-blue-500 text-white focus:border-blue-400" 
-                  : "bg-white border-2 border-neutral-800 text-neutral-800 focus:border-blue-500"
-              )}
+          {/* Collection */}
+          <div className="space-y-1.5">
+            <Label>Collection</Label>
+            {newColl ? (
+              <div className="flex gap-2">
+                <Input className={input} value={coll} onChange={e => setColl(e.target.value)} placeholder="New collection…" disabled={isSaving} />
+                <Button size="sm" variant="ghost" onClick={() => setNewColl(false)}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Select value={coll || '__NONE__'} onValueChange={v => {
+                if (v === '__CREATE_NEW__') { setNewColl(true); setColl(''); }
+                else setColl(v === '__NONE__' ? '' : v);
+              }}>
+                <SelectTrigger className={input}>
+                  <SelectValue placeholder="Select…" />
+                </SelectTrigger>
+                <SelectContent className={bg}>
+                  <SelectItem value="__NONE__">No Collection</SelectItem>
+                  <SelectSeparator />
+                  {collections.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  <SelectSeparator />
+                  <SelectItem value="__CREATE_NEW__" className="flex gap-1.5">
+                    <PlusCircle className="h-4 w-4" /> Create New…
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          {/* Slug */}
+          <div className="space-y-1.5">
+            <Label htmlFor="customSlug">Custom Slug (Optional)</Label>
+            <Input 
+              id="customSlug" 
+              className={input} 
+              value={customSlug} 
+              onChange={(e) => setCustomSlug(generateSlug(e.target.value))} 
+              placeholder="e.g., my-awesome-flow"
               disabled={isSaving}
             />
+            {customSlug && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Preview: {typeof window !== 'undefined' ? window.location.origin : ''}/flow/{customSlug}
+              </p>
+            )}
+          </div>
+          {/* Description */}
+          <div className="space-y-1.5">
+            <Label htmlFor="desc">Description</Label>
+            <Textarea id="desc" className={textarea} value={desc} onChange={e => setDesc(e.target.value)} disabled={isSaving} />
           </div>
         </div>
-        {/* Dialog Footer: Cartoon Style with Dark Mode Support */}
-        <DialogFooter className={cn(
-          "p-6 pt-4 border-t-2 flex justify-end gap-3",
-          isDark ? "border-blue-500" : "border-neutral-800"
-        )}>
-           {/* Cancel Button: Cartoon Outline Style with Dark Mode Support */}
-          <Button 
-            type="button" 
-            onClick={handleClose}
-            className={cn(
-              isDark ? darkOutlineCartoonButtonStyle : outlineCartoonButtonStyle
-            )}
-            disabled={isSaving}
+        {/* Footer */}
+        <DialogFooter className={cn("p-4 border-t-[2px] flex justify-end gap-2", bg)}>
+          <DialogClose asChild>
+            <Button className={btn('outline')}>Cancel</Button>
+          </DialogClose>
+          <Button
+            className={btn('primary')}
+            onClick={handleSave}
+            disabled={!name.trim() || isSaving}
           >
-            Cancel
-          </Button>
-           {/* Save Button: Cartoon Primary Style with Dark Mode Support */}
-          <Button 
-            type="button" 
-            onClick={handleSave} 
-            disabled={isSaving || !name.trim()}
-            className={cn(
-              isDark ? darkPrimaryCartoonButtonStyle : primaryCartoonButtonStyle
-            )}
-          >
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {isSaving ? 'Saving...' : 'Save Flow'}
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {isSaving ? 'Saving…' : currentFlowId ? 'Update' : 'Save'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-} 
+}

@@ -1,889 +1,724 @@
 'use client';;
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { useFlowStore } from '@/store/flow-store';
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useFlowStore } from '@/store';
 
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+    Drawer,
+    DrawerTrigger,
+    DrawerContent,
+    DrawerHeader,
+    DrawerTitle,
+    DrawerDescription,
+    DrawerFooter,
+    DrawerClose,
+} from '@/components/ui/drawer';
 import {
-  Save,
-  Folder,
-  FolderOpen,
-  Trash2,
-  Download,
-  Upload,
-  PlusCircle,
-  ExternalLink,
-  Loader2,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+    DialogClose,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem,
+    SelectSeparator,
+} from '@/components/ui/select';
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+
+import {
+    Save,
+    Folder,
+    FolderOpen,
+    Trash2,
+    Download,
+    Upload,
+    PlusCircle,
+    Loader2,
+    Square,
+    BookOpenCheck,
+    TestTube,
+    BrainCircuit,
+    Search,
+    ArrowUpDown,
+    Share2,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { SavedFlow } from '@/services/storage-service';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from "@/components/ui/select";
+
+import { cn, generateSlug } from '@/lib/utils';
+import { format, formatDistanceToNow } from 'date-fns';
 import { useTheme } from 'next-themes';
 
-// Format date for display
-const formatDate = (dateStr: string): string => {
+import {
+    NODE_TEST_WORKFLOW,
+    TUTORIAL_WORKFLOW,
+    workflowTemplates,
+} from '@/config/workflow-templates';
+import { SavedFlow } from '@/contracts/types';
+import { ShareFlowDialog } from './share-flow-dialog';
+
+/* -------------------------------------------------------------------------- */
+/*                                   types                                    */
+/* -------------------------------------------------------------------------- */
+type FlowItem = SavedFlow & { isTemplate?: boolean };
+type SortOption = 'name_asc' | 'name_desc' | 'date_asc' | 'date_desc';
+
+/* -------------------------------------------------------------------------- */
+/*                           helpers (sin cambios)                            */
+/* -------------------------------------------------------------------------- */
+const formatDate = (str: string) => {
   try {
-    const date = new Date(dateStr);
-    // Use a slightly more concise format
-    return format(date, 'MMM d, yy HH:mm');
-  } catch (e) {
+    const d = new Date(str);
+    const now = new Date();
+    if (now.getTime() - d.getTime() < 7 * 24 * 60 * 60 * 1000) {
+      return formatDistanceToNow(d, { addSuffix: true });
+    }
+    return format(d, 'MMM d, yyyy');
+  } catch {
     return 'Invalid date';
   }
 };
 
-// Cartoon style definitions
-const baseCartoonButtonStyle = "gap-1 rounded-xl border-2 border-neutral-800 px-4 py-2 text-sm font-semibold shadow-sm transition-all duration-200 transform hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60";
-const primaryCartoonButtonStyle = `${baseCartoonButtonStyle} bg-blue-500 hover:bg-blue-600 text-white focus:ring-blue-500`;
-const outlineCartoonButtonStyle = `${baseCartoonButtonStyle} bg-white hover:bg-neutral-100 text-neutral-800 focus:ring-blue-500`;
-const destructiveCartoonButtonStyle = `${baseCartoonButtonStyle} bg-red-500 hover:bg-red-600 text-white focus:ring-red-500`;
-const iconButtonCartoonStyle = "h-8 w-8 rounded-lg border-2 border-neutral-800 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 shadow-sm transition-all duration-200 disabled:opacity-50 flex items-center justify-center";
-const ghostButtonCartoonStyle = "h-8 rounded-lg text-neutral-600 hover:bg-neutral-100 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 flex items-center justify-center px-2";
+/* -------------------------------------------------------------------------- */
+/*                      hook de estilos "cartoon" (UI)                        */
+/* -------------------------------------------------------------------------- */
+const useCartoon = () => {
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
+  const shadow = dark
+    ? 'shadow-[4px_4px_0_#172554]'
+    : 'shadow-[4px_4px_0_#0f172a]';
 
-// Dark theme button styles
-const darkCartoonButtonStyle = "gap-1 rounded-xl border-2 border-blue-500 px-4 py-2 text-sm font-semibold shadow-md transition-all duration-200 transform hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 disabled:opacity-60";
-const darkPrimaryCartoonButtonStyle = `${darkCartoonButtonStyle} bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-400`;
-const darkOutlineCartoonButtonStyle = `${darkCartoonButtonStyle} bg-neutral-800 hover:bg-neutral-700 text-blue-300 hover:text-blue-200 focus:ring-blue-400`;
-const darkDestructiveCartoonButtonStyle = `${darkCartoonButtonStyle} bg-red-600 hover:bg-red-700 text-white focus:ring-red-400 border-red-500`;
-const darkIconButtonCartoonStyle = "h-8 w-8 rounded-lg border-2 border-blue-500 text-blue-400 hover:bg-neutral-800 hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-neutral-900 focus:ring-blue-400 shadow-md transition-all duration-200 disabled:opacity-50 flex items-center justify-center";
-const darkGhostButtonCartoonStyle = "h-8 rounded-lg text-blue-400 hover:bg-neutral-800 hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-400 flex items-center justify-center px-2";
+  /* botones --------------------------------------------------------------- */
+  const btn = (
+    variant: 'primary' | 'outline' | 'destructive' = 'primary',
+    size: 'sm' | 'icon' = 'sm',
+  ) =>
+    cn(
+      'rounded-xl border px-4 py-2 text-sm font-semibold transition-transform duration-150 hover:scale-[1.03] disabled:opacity-60 flex items-center gap-1.5',
+      size === 'sm' && 'h-9',
+      size === 'icon' && 'h-8 w-8 p-0',
+      shadow,
+      variant === 'primary' &&
+        (dark
+          ? 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white'
+          : 'bg-blue-500 hover:bg-blue-600 border-slate-900 text-white'),
+      variant === 'outline' &&
+        (dark
+          ? 'bg-[#1e293b] hover:bg-[#334155] border-blue-500 text-blue-100'
+          : 'bg-white hover:bg-slate-100 border-slate-900 text-slate-800'),
+      variant === 'destructive' &&
+        (dark
+          ? 'bg-red-600 hover:bg-red-500 border-red-500 text-white'
+          : 'bg-red-500 hover:bg-red-600 border-slate-900 text-white'),
+    );
 
-export function FlowManager() {
-  const { 
-    savedFlows, 
-    loadSavedFlows, 
-    saveCurrentFlow, 
-    loadFlow, 
-    deleteFlow, 
-    createNewFlow, 
+  /* inputs ---------------------------------------------------------------- */
+  const input = cn(
+    'rounded-lg border-[2px] h-10 text-sm shadow-inner focus:ring-2',
+    dark
+      ? 'bg-neutral-800 border-blue-500/50 text-blue-200 placeholder:text-blue-400 focus:ring-blue-400'
+      : 'bg-white border-slate-900 text-slate-800 placeholder:text-slate-400 focus:ring-blue-500',
+  );
+  const textarea = cn(input, 'min-h-[70px]');
+
+  /* layout ---------------------------------------------------------------- */
+  const side = cn(
+    'md:w-64 flex flex-col gap-2 flex-shrink-0 p-4 md:p-0 md:pr-4 pb-4 md:pb-0 border-b-2 md:border-b-0 md:border-r-[2px]',
+    dark ? 'border-blue-500/40' : 'border-slate-300',
+  );
+  const sideItem = (active = false) =>
+    cn(
+      'w-full h-9 rounded-lg text-sm flex items-center gap-2 px-3 py-1.5 transition-colors',
+      dark
+        ? 'hover:bg-neutral-800/60 text-blue-300'
+        : 'hover:bg-slate-100 text-slate-700',
+      active &&
+        (dark
+          ? 'bg-blue-900/60 text-blue-100 border-l-4 border-blue-500 pl-[calc(0.75rem-4px)]'
+          : 'bg-blue-100 text-blue-800 border-l-4 border-blue-500 pl-[calc(0.75rem-4px)]'),
+    );
+
+  /* tarjeta flujo --------------------------------------------------------- */
+  const card = (current = false, loading = false) =>
+    cn(
+      'rounded-xl border-[2px] p-4 flex flex-col transition-transform duration-150 hover:scale-[1.02] outline-none',
+      dark
+        ? 'bg-[#1e293b]/60 border-blue-500/40 hover:border-blue-500/80'
+        : 'bg-white border-slate-300 hover:border-slate-500',
+      current &&
+        (dark
+          ? 'border-blue-500 bg-blue-900/20'
+          : 'border-blue-600 bg-blue-50/50'),
+      loading && 'opacity-70 cursor-default',
+      !loading && 'cursor-pointer',
+    );
+
+  /* dialog / dropdown ----------------------------------------------------- */
+  const dlg = (danger = false) =>
+    cn(
+      'p-0 sm:max-w-lg rounded-xl border-[3px] shadow-xl',
+      shadow,
+      danger
+        ? dark
+          ? 'bg-neutral-900 border-red-500 text-red-200'
+          : 'bg-white border-slate-900 text-slate-800'
+        : dark
+        ? 'bg-neutral-900 border-blue-500 text-blue-200'
+        : 'bg-white border-slate-900 text-slate-800',
+    );
+  const dropdown = cn(
+    'rounded-xl border-[2px] p-1.5 shadow-md min-w-[220px] z-50',
+    dark ? 'bg-[#1e293b] border-blue-500' : 'bg-white border-slate-900',
+  );
+
+  return { dark, shadow, btn, input, textarea, side, sideItem, card, dlg, dropdown };
+};
+
+/* -------------------------------------------------------------------------- */
+/*                         FlowCard (UI only)                                 */
+/* -------------------------------------------------------------------------- */
+interface FlowCardProps {
+  flow: FlowItem;
+  current: boolean;
+  styles: ReturnType<typeof useCartoon>;
+  load: (f: FlowItem) => void;
+  del: (f: FlowItem) => void;
+  loading: boolean;
+}
+const FlowCard: React.FC<FlowCardProps> = ({ flow, current, styles, load, del, loading }) => {
+  return (
+    <div
+      className={styles.card(current, loading)}
+      role="button"
+      tabIndex={loading ? -1 : 0}
+      onClick={() => !loading && load(flow)}
+      onKeyDown={e => {
+        if ((e.key === 'Enter' || e.key === ' ') && !loading) load(flow);
+      }}
+    >
+      {/* delete */}
+      {!flow.isTemplate && (
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={e => {
+            e.stopPropagation();
+            del(flow);
+          }}
+          disabled={loading || current}
+          className="absolute top-2 right-2 opacity-60 hover:opacity-100"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      )}
+
+      {/* header */}
+      <div className="flex items-start gap-2 mb-2">
+        {flow.isTemplate ? (
+          <BrainCircuit className="h-5 w-5 text-purple-500" />
+        ) : (
+          <Folder className="h-5 w-5 text-cyan-500" />
+        )}
+        <span className="font-semibold truncate flex-1">{flow.name}</span>
+      </div>
+
+      {/* description */}
+      <p className="text-xs mb-3 min-h-[30px]">
+        {flow.description
+          ? flow.description.length > 100
+            ? `${flow.description.slice(0, 97)}…`
+            : flow.description
+          : (
+            <span className={styles.dark ? 'text-blue-400/60 italic' : 'text-slate-400 italic'}>
+              No description
+            </span>
+          )}
+      </p>
+
+      <div className={cn('text-xs pt-2 border-t', styles.dark ? 'border-blue-500/20 text-blue-400/80' : 'border-slate-200 text-slate-500')}>
+        Modified: {formatDate(flow.updated_at)}
+      </div>
+    </div>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/*                             FlowManager                                    */
+/* -------------------------------------------------------------------------- */
+export default function FlowManager() {
+  /* store --------------------------------------------------------------- */
+  const {
+    savedFlows,
+    loadSavedFlows,
+    saveCurrentFlow,
+    loadFlow,
+    deleteFlow,
+    createNewFlow,
     exportCurrentFlow,
     importFlow,
     currentFlowId,
     currentFlowName,
     currentFlowDescription,
     currentFlowCollection,
-    setCurrentFlowMetadata,
+    currentFlowSlug,
     isSaving,
     isLoading,
+    loadWorkflow,
   } = useFlowStore();
-  
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
-  const [flowToDelete, setFlowToDelete] = useState<string | null>(null);
-  const [selectedCollection, setSelectedCollection] = useState<string | null>(null); // null represents "All Flows"
-  
-  // Local state for save form
-  const [saveName, setSaveName] = useState('');
-  const [saveDescription, setSaveDescription] = useState('');
-  const [saveCollection, setSaveCollection] = useState('');
-  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
-  
-  // Ref for file input
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  
-  // Initialize load flows on mount
-  useEffect(() => {
-    loadSavedFlows();
-  }, [loadSavedFlows]);
-  
-  // Update the form when the drawer opens or currentFlow changes
-  useEffect(() => {
-    if (isDrawerOpen) {
-      setSaveName(currentFlowName || '');
-      setSaveDescription(currentFlowDescription || '');
-      setSaveCollection(currentFlowCollection || '');
-      setIsCreatingCollection(false);
-    }
-    loadSavedFlows();
-  }, [currentFlowName, currentFlowDescription, currentFlowCollection, isDrawerOpen, loadSavedFlows]);
 
-  // Extract unique collection names for dropdown/grouping
-  const existingCollections = useMemo(() => {
-    const collections = new Set<string>();
-    savedFlows.forEach(flow => {
-      if (flow.collections) {
-        collections.add(flow.collections);
-      }
-    });
-    return Array.from(collections).sort(); // Sort alphabetically
+  /* state --------------------------------------------------------------- */
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<SortOption>('date_desc');
+  const [importDlg, setImportDlg] = useState(false);
+  const [saveDlg, setSaveDlg] = useState(false);
+  const [shareDlg, setShareDlg] = useState(false);
+  const [deleteDlg, setDeleteDlg] = useState<FlowItem | null>(null);
+  const [view, setView] = useState<string | null>(null);
+
+  /* save dialog fields */
+  const [name, setName] = useState('');
+  const [desc, setDesc] = useState('');
+  const [coll, setColl] = useState('');
+  const [customSlug, setCustomSlug] = useState('');
+  const [newColl, setNewColl] = useState(false);
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const styles = useCartoon();
+
+  /* effects ------------------------------------------------------------- */
+  useEffect(() => {
+    (async () => {
+      await loadSavedFlows();
+    })();
+  }, [loadSavedFlows]);
+
+  useEffect(() => {
+    if (saveDlg) {
+      setName(currentFlowName || '');
+      setDesc(currentFlowDescription || '');
+      setColl(currentFlowCollection || '');
+      setCustomSlug(currentFlowSlug || '');
+      setNewColl(false);
+    }
+  }, [saveDlg, currentFlowName, currentFlowDescription, currentFlowCollection, currentFlowSlug]);
+
+  /* collections list ---------------------------------------------------- */
+  const collections = useMemo(() => {
+    const set = new Set<string>();
+    savedFlows.forEach(f => f.collections && set.add(f.collections));
+    return [...set].sort();
   }, [savedFlows]);
 
-  // Group flows by collection for display
-  const groupedFlows = useMemo(() => {
-    const groups: Record<string, SavedFlow[]> = {uncategorized: []};
-    existingCollections.forEach(col => groups[col] = []);
+  /* virtual template entries ------------------------------------------- */
+  const templates = useMemo<FlowItem[]>(
+    () =>
+      workflowTemplates.map((t, i) => ({
+        id: `tpl-${i}`,
+        name: t.name,
+        description: t.description,
+        updated_at: new Date(Date.now() - i * 60000).toISOString(),
+        collections: 'Templates',
+        isTemplate: true,
+        user_id: '__TEMPLATE__',
+        created_at: '',
+        nodes: t.nodes,
+        edges: t.edges,
+      })),
+    [],
+  );
 
-    savedFlows.forEach(flow => {
-      if (flow.collections && groups[flow.collections]) {
-        groups[flow.collections].push(flow);
-      } else {
-        groups.uncategorized.push(flow);
+  /* list with filters --------------------------------------------------- */
+  const list = useMemo<FlowItem[]>(() => {
+    let arr: FlowItem[] = [...savedFlows];
+    if (view === 'Templates') arr = templates;
+    else if (view === '__UNCATEGORIZED__') arr = arr.filter(f => !f.collections && !f.isTemplate);
+    else if (view) arr = arr.filter(f => f.collections === view && !f.isTemplate);
+    else arr = [...templates, ...arr];
+
+    if (search) {
+      const s = search.toLowerCase();
+      arr = arr.filter(
+        f =>
+          f.name.toLowerCase().includes(s) ||
+          f.description?.toLowerCase().includes(s) ||
+          f.collections?.toLowerCase().includes(s),
+      );
+    }
+
+    arr.sort((a, b) => {
+      switch (sort) {
+        case 'name_asc':
+          return a.name.localeCompare(b.name);
+        case 'name_desc':
+          return b.name.localeCompare(a.name);
+        case 'date_asc':
+          return +new Date(a.updated_at) - +new Date(b.updated_at);
+        default:
+          return +new Date(b.updated_at) - +new Date(a.updated_at);
       }
     });
-    return groups;
-  }, [savedFlows, existingCollections]);
+    return arr;
+  }, [savedFlows, templates, view, search, sort]);
 
-  // Filter flows based on selected collection for the right panel
-  const displayedFlows = useMemo(() => {
-    if (selectedCollection === null) {
-      // Show all flows if "All" is selected
-      return savedFlows;
-    }
-    // Show uncategorized flows
-    if (selectedCollection === '__UNCATEGORIZED__') {
-        return groupedFlows.uncategorized || [];
-    }
-    // Show flows from a specific collection
-    return groupedFlows[selectedCollection] || [];
-  }, [selectedCollection, savedFlows, groupedFlows]);
-
-  // Handler for saving the current flow
+  /* handlers ------------------------------------------------------------ */
   const handleSaveFlow = async () => {
-    await saveCurrentFlow(saveName, saveDescription, saveCollection || null);
-    setIsSaveDialogOpen(false);
-  };
-  
-  // Handler for importing a flow from file
-  const handleImportFlow = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    try {
-      await importFlow(file);
-      setIsImportDialogOpen(false);
-    } catch (error) {
-      console.error('Error importing flow:', error);
-    } finally {
-      // Reset the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-  
-  // Handler for creating a new flow
-  const handleCreateNewFlow = () => {
-    createNewFlow();
-    setIsDrawerOpen(false);
-  };
-  
-  // Handler for loading a flow
-  const handleLoadFlow = (flowId: string) => {
-    loadFlow(flowId);
-    setIsDrawerOpen(false);
-  };
-  
-  // Handler for deleting a flow
-  const handleDeleteFlow = (flowId: string) => {
-    deleteFlow(flowId);
-    setFlowToDelete(null);
-  };
-  
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
+    if (!name.trim()) return;
+    await saveCurrentFlow(name, desc, coll || null, undefined, undefined, customSlug.trim());
+    setSaveDlg(false);
+    loadSavedFlows();
   };
 
-  const confirmDeleteFlow = async () => {
-    if (flowToDelete) {
-      try {
-        await deleteFlow(flowToDelete);
-        console.log("Flow deleted successfully:", flowToDelete);
-        setFlowToDelete(null); // Close dialog
-      } catch (error) {
-        console.error("Error deleting flow:", error);
-        // Add user feedback
+  const importFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.name.endsWith('.json')) {
+      e.target.value = '';
+      return;
+    }
+    await importFlow(f);
+    setImportDlg(false);
+    loadSavedFlows();
+    e.target.value = '';
+  };
+
+  const loadItem = (f: FlowItem) => {
+    if (isLoading) return;
+    if (f.isTemplate) {
+      const tpl = workflowTemplates.find(t => t.name === f.name);
+      if (tpl) {
+        loadWorkflow(tpl);
       }
+    } else {
+      loadFlow(f.id);
+    }
+    setDrawerOpen(false);
+  };
+
+  const deleteItem = (f: FlowItem) => {
+    if (f.isTemplate || f.id === currentFlowId) return;
+    setDeleteDlg(f);
+  };
+
+  const confirmDelete = async () => {
+    if (deleteDlg && !deleteDlg.isTemplate) {
+      await deleteFlow(deleteDlg.id);
+      setDeleteDlg(null);
+      loadSavedFlows();
     }
   };
 
+  /* -------------------------------------------------------------------- */
+  /*                               RENDER                                 */
+  /* -------------------------------------------------------------------- */
   return (
     <>
-      {/* Main Drawer Trigger: Dark or Light Cartoon style */}
-      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+      {/* drawer trigger */}
+      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DrawerTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn(
-              isDark 
-                ? darkOutlineCartoonButtonStyle
-                : outlineCartoonButtonStyle, 
-              "h-9 py-1.5 gap-1.5"
-            )}
-          >
-            <Folder className={cn("h-4 w-4", isDark ? "text-blue-400" : "")} /> 
-            <span className={isDark ? "text-blue-300" : ""}>Flows</span>
+          <Button size="sm" className={styles.btn('outline')}>
+            <FolderOpen className="h-4 w-4" /> Manage Flows
           </Button>
         </DrawerTrigger>
-        
-        {/* Drawer Content: Dark or Light Cartoon style with appropriate background */}
-        <DrawerContent className={cn(
-          "border-t-2 shadow-lg",
-          isDark 
-            ? "bg-neutral-900 text-blue-200 border-blue-500" 
-            : "bg-white text-neutral-800 border-neutral-800"
-        )}>
-          {/* Consistent padding, max-width, use vh for height */}
-          <div className="mx-auto w-full max-w-6xl p-6 flex flex-col h-[85vh]">
-            {/* Drawer Header: Dark or Light Cartoon style */}
-            <DrawerHeader className="p-0 mb-4 flex-shrink-0">
-              <DrawerTitle className={cn(
-                "text-lg font-bold flex items-center gap-2",
-                isDark ? "text-blue-200" : "text-neutral-800"
-              )}>
-                <FolderOpen className={cn(
-                  "h-5 w-5", 
-                  isDark ? "text-blue-400" : "text-blue-600"
-                )} /> 
-                Manage Flows
+
+        {/* drawer content */}
+        <DrawerContent
+          className={cn(
+            'border-t-[3px] mt-20 shadow-lg',
+            styles.shadow,
+            styles.dark ? 'bg-[#0f172a] border-blue-600 text-blue-200' : 'bg-gray-50 border-slate-900 text-slate-800',
+          )}
+        >
+          <div className="mx-auto w-full max-w-7xl p-5 flex flex-col h-[85vh]">
+
+            {/* header */}
+            <DrawerHeader className="p-0 mb-4">
+              <DrawerTitle className="text-xl font-bold flex items-center gap-2">
+                Flow Manager
+                {isLoading && <Loader2 className="h-5 w-5 animate-spin text-blue-500" />}
               </DrawerTitle>
-              <DrawerDescription className={cn(
-                "mt-1",
-                isDark ? "text-blue-400" : "text-neutral-600"
-              )}>
-                Save, load, import, and export your data flows.
+              <DrawerDescription className={styles.dark ? 'text-blue-400/80' : 'text-slate-600'}>
+                Browse, load, save and manage your flows.
               </DrawerDescription>
             </DrawerHeader>
-            
-            {/* Main Content Area: Flex row for two columns */}
-            <div className="flex-grow flex gap-6 overflow-hidden">
 
-              {/* Left Column: Collections List & Actions */}
-              <div className="w-1/4 lg:w-1/5 flex flex-col gap-3 flex-shrink-0 border-r-2 border-neutral-200 pr-5">
-                {/* Cartoon style header */}
-                <h3 className={cn(
-                  "text-sm font-bold px-1 mb-1",
-                  isDark ? "text-blue-400" : "text-neutral-600"
-                )}>COLLECTIONS</h3>
-                {/* Create New Flow Button: Dark or Light Cartoon style */}
-                <Button
-                    size="sm"
-                    onClick={handleCreateNewFlow}
-                    className={cn(
-                      isDark ? darkPrimaryCartoonButtonStyle : primaryCartoonButtonStyle, 
-                      "w-full justify-center gap-1.5 h-10"
-                    )}
-                >
-                    <PlusCircle className="h-4 w-4" /> Create New Flow
-                </Button>
-                {/* Scrollable Collection List with dark or light cartoon styling */} 
-                <div className="flex-grow overflow-y-auto space-y-1.5 -mr-3 pr-3">
-                   {/* "All Flows" Item: Dark or Light Cartoon style */}
-                   <Button
-                       variant="ghost"
-                       size="sm"
-                       onClick={() => setSelectedCollection(null)}
-                       className={cn(
-                          "w-full h-9 justify-start gap-2 rounded-lg text-sm font-medium",
-                          isDark
-                            ? "text-blue-300 hover:bg-neutral-800" 
-                            : "text-neutral-700 hover:bg-neutral-100",
-                          isDark && selectedCollection === null 
-                            ? 'bg-blue-900/40 text-blue-200 font-semibold border-2 border-blue-500/50' 
-                            : !isDark && selectedCollection === null 
-                              ? 'bg-blue-100 text-blue-800 font-semibold border-2 border-blue-300' 
-                              : ''
-                       )}
-                   >
-                       <FolderOpen className={cn(
-                         "h-4 w-4", 
-                         isDark ? "text-blue-400" : "text-blue-600"
-                       )}/> All Flows
-                   </Button>
-                   {/* Uncategorized Item: Dark or Light Cartoon style */}
-                   <Button
-                       variant="ghost"
-                       size="sm"
-                       onClick={() => setSelectedCollection('__UNCATEGORIZED__')}
-                       className={cn(
-                          "w-full h-9 justify-start gap-2 rounded-lg text-sm font-medium",
-                          isDark
-                            ? "text-blue-400/70 hover:bg-neutral-800" 
-                            : "text-neutral-600 hover:bg-neutral-100",
-                          isDark && selectedCollection === '__UNCATEGORIZED__' 
-                            ? 'bg-neutral-800 text-blue-300 font-semibold border-2 border-neutral-700' 
-                            : !isDark && selectedCollection === '__UNCATEGORIZED__' 
-                              ? 'bg-neutral-100 text-neutral-800 font-semibold border-2 border-neutral-300'
-                              : ''
-                       )}
-                   >
-                      <Folder className={cn(
-                        "h-4 w-4",
-                        isDark ? "text-blue-400/70" : "text-neutral-500"
-                      )}/> <span className="italic">Uncategorized</span>
-                   </Button>
-                   <div className={cn(
-                     "my-2 border-t-2",
-                     isDark ? "border-neutral-700" : "border-neutral-200"
-                   )}></div> {/* Dark or Light Cartoon style separator */}
-                   {/* Dynamic Collection Items: Dark or Light Cartoon style */}
-                   {existingCollections.map(col => (
-                      <Button
-                         key={col}
-                         variant="ghost"
-                         size="sm"
-                         onClick={() => setSelectedCollection(col)}
-                         className={cn(
-                            "w-full h-9 justify-start gap-2 rounded-lg text-sm font-medium",
-                            isDark
-                              ? "text-blue-300 hover:bg-neutral-800" 
-                              : "text-neutral-700 hover:bg-neutral-100",
-                            isDark && selectedCollection === col 
-                              ? 'bg-cyan-900/40 text-cyan-200 font-semibold border-2 border-cyan-700/50' 
-                              : !isDark && selectedCollection === col 
-                                ? 'bg-cyan-100 text-cyan-800 font-semibold border-2 border-cyan-300' 
-                                : ''
-                         )}
-                      >
-                         <Folder className={cn(
-                           "h-4 w-4 flex-shrink-0",
-                           isDark ? "text-cyan-400" : "text-cyan-600"
-                         )}/> <span className="truncate flex-1 text-left">{col}</span>
-                      </Button>
-                   ))}
-                </div>
-                 {/* Import/Export: Dark or Light Cartoon style */}
-                 <div className={cn(
-                   "mt-auto flex flex-col gap-2 pt-3 pb-2 border-t-2",
-                   isDark ? "border-neutral-700" : "border-neutral-200"
-                 )}>
-                     <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={exportCurrentFlow}
-                        className={cn(
-                          isDark ? darkOutlineCartoonButtonStyle : outlineCartoonButtonStyle, 
-                          "w-full justify-center gap-1.5 h-9"
-                        )}
-                      >
-                        <Download className={isDark ? "h-4 w-4 text-blue-400" : "h-4 w-4"} /> 
-                        <span className={isDark ? "text-blue-300" : ""}>Export Current</span>
-                      </Button>
-                     <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setIsImportDialogOpen(true)}
-                        className={cn(
-                          isDark ? darkOutlineCartoonButtonStyle : outlineCartoonButtonStyle, 
-                          "w-full justify-center gap-1.5 h-9"
-                        )}
-                      >
-                        <Upload className={isDark ? "h-4 w-4 text-blue-400" : "h-4 w-4"} /> 
-                        <span className={isDark ? "text-blue-300" : ""}>Import Flow</span>
-                      </Button>
-                 </div>
-              </div>
+            {/* layout */}
+            <div className="flex-grow flex flex-col md:flex-row gap-6 overflow-hidden">
 
-              {/* Right Column: Filtered Flows List */}
-              <div className="flex-grow flex flex-col overflow-hidden">
-                 {/* Header for the right panel: Dark or Light Cartoon style */}
-                 <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                   <h3 className={cn(
-                     "text-base font-bold truncate",
-                     isDark ? "text-blue-200" : "text-neutral-800"
-                   )}>
-                     {selectedCollection === null ? 'All Flows' : selectedCollection === '__UNCATEGORIZED__' ? 'Uncategorized' : selectedCollection}
-                   </h3>
-                   {/* Quick Save Button: Dark or Light Cartoon style */}
-                   <Button
-                        size="sm"
-                        onClick={() => setIsSaveDialogOpen(true)}
-                        className={cn(
-                          isDark ? darkPrimaryCartoonButtonStyle : primaryCartoonButtonStyle, 
-                          "gap-1.5 h-9"
-                        )}
-                        disabled={isSaving}
-                        title="Save Current Flow"
-                    >
-                        <Save className="h-3.5 w-3.5" />
-                        Save Current
+              {/* sidebar */}
+              <aside className={styles.side}>
+                <h3 className="text-xs font-bold mt-3 mb-1 uppercase tracking-wider">Actions</h3>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className={styles.btn('primary')}>
+                      <PlusCircle className="h-4 w-4" /> Create Flow
                     </Button>
-                 </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className={styles.dropdown} sideOffset={6} align="start">
+                    <DropdownMenuLabel>New</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => { createNewFlow(); setDrawerOpen(false); }}>
+                      <Square className="h-4 w-4 text-gray-400" /> Blank Flow
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Template</DropdownMenuLabel>
+                    {workflowTemplates.map(t => (
+                      <DropdownMenuItem key={t.name} onClick={() => { loadWorkflow(t); setDrawerOpen(false); }}>
+                        {t.name === TUTORIAL_WORKFLOW.name ? (
+                          <BookOpenCheck className="h-4 w-4 text-blue-500" />
+                        ) : t.name === NODE_TEST_WORKFLOW.name ? (
+                          <TestTube className="h-4 w-4 text-purple-500" />
+                        ) : (
+                          <BrainCircuit className="h-4 w-4 text-emerald-500" />
+                        )}
+                        {t.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
-                 {/* Scrollable Flow Table: Dark or Light Cartoon style */}
-                 <div className={cn(
-                   "flex-grow overflow-y-auto rounded-xl shadow-md mb-2 border-2",
-                   isDark 
-                     ? "bg-neutral-900 border-blue-500/50" 
-                     : "bg-white border-neutral-800"
-                 )}>
-                    {displayedFlows.length > 0 ? (
-                      <Table>
-                         {/* Sticky Header: Dark or Light Cartoon style */}
-                         <TableHeader className={cn(
-                           "sticky top-0 z-10",
-                           isDark ? "bg-neutral-800" : "bg-neutral-100"
-                         )}>
-                            <TableRow className={cn(
-                              "hover:bg-transparent border-b-2",
-                              isDark ? "border-neutral-700" : "border-neutral-300"
-                            )}>
-                              {/* Dark or Light Cartoon style header cells */}
-                              <TableHead className={cn(
-                                "px-4 py-2.5 text-xs font-bold uppercase tracking-wider",
-                                isDark ? "text-blue-400" : "text-neutral-600"
-                              )}>Name</TableHead>
-                              <TableHead className={cn(
-                                "px-4 py-2.5 text-xs font-bold uppercase tracking-wider hidden md:table-cell",
-                                isDark ? "text-blue-400" : "text-neutral-600"
-                              )}>Description</TableHead>
-                              <TableHead className={cn(
-                                "px-4 py-2.5 text-xs font-bold uppercase tracking-wider hidden sm:table-cell",
-                                isDark ? "text-blue-400" : "text-neutral-600"
-                              )}>Modified</TableHead>
-                              <TableHead className={cn(
-                                "px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-right",
-                                isDark ? "text-blue-400" : "text-neutral-600"
-                              )}>Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody className={cn(
-                            "divide-y-2",
-                            isDark ? "divide-neutral-800" : "divide-neutral-200"
-                          )}>
-                            {displayedFlows.map((flow) => (
-                              <TableRow key={flow.id} className={cn(
-                                isDark 
-                                  ? currentFlowId === flow.id 
-                                    ? "bg-blue-900/30 hover:bg-blue-900/40" 
-                                    : "hover:bg-neutral-800/50"
-                                  : currentFlowId === flow.id 
-                                    ? "bg-blue-50 hover:bg-blue-100" 
-                                    : "hover:bg-neutral-50"
-                              )}>
-                                <TableCell className={cn(
-                                  "px-4 py-3 font-medium w-1/3",
-                                  isDark ? "text-blue-200" : "text-neutral-800"
-                                )}>
-                                  <div className="flex items-center gap-2">
-                                    <span className="truncate" title={flow.name}>{flow.name}</span>
-                                    {currentFlowId === flow.id && (
-                                      <Badge className={cn(
-                                        "ml-auto text-xs rounded-full px-2 py-0.5 whitespace-nowrap font-semibold",
-                                        isDark
-                                          ? "bg-blue-900/80 text-blue-200 border-2 border-blue-700" 
-                                          : "bg-blue-100 text-blue-800 border-2 border-blue-300"
-                                      )}>
-                                        Current
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell className={cn(
-                                  "px-4 py-3 text-sm hidden md:table-cell max-w-xs truncate",
-                                  isDark ? "text-blue-300" : "text-neutral-600"
-                                )}>
-                                  {flow.description || <span className={cn(
-                                    "italic",
-                                    isDark ? "text-blue-400/60" : "text-neutral-400"
-                                  )}>No description</span>}
-                                </TableCell>
-                                <TableCell className={cn(
-                                  "px-4 py-3 text-sm hidden sm:table-cell whitespace-nowrap",
-                                  isDark ? "text-blue-300" : "text-neutral-600"
-                                )}>
-                                  {formatDate(flow.updated_at)}
-                                </TableCell>
-                                <TableCell className="px-4 py-3 text-right">
-                                    {/* Action buttons: Dark or Light Cartoon style */}
-                                    <div className="flex items-center justify-end gap-1.5">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleLoadFlow(flow.id)}
-                                      className={cn(
-                                        isDark 
-                                          ? darkIconButtonCartoonStyle + " hover:bg-blue-900/50 hover:text-blue-200 text-blue-400" 
-                                          : iconButtonCartoonStyle + " hover:bg-blue-50 hover:text-blue-800 text-blue-600"
-                                      )}
-                                      title="Load flow"
-                                    >
-                                      <ExternalLink className="h-4 w-4" />
-                                    </Button>
-                                    <Dialog open={flowToDelete === flow.id} onOpenChange={(open) => !open && setFlowToDelete(null)}>
-                                      <DialogTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => setFlowToDelete(flow.id)}
-                                          className={cn(
-                                            isDark 
-                                              ? darkIconButtonCartoonStyle + " hover:bg-red-900/50 hover:text-red-300 text-red-400 hover:border-red-500" 
-                                              : iconButtonCartoonStyle + " hover:bg-red-50 hover:text-red-800 text-red-600"
-                                          )}
-                                          title="Delete flow"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent className={cn(
-                                        "p-6 shadow-xl rounded-xl",
-                                        isDark 
-                                          ? "bg-neutral-900 border-2 border-red-500 text-red-200" 
-                                          : "bg-white border-2 border-neutral-800 text-neutral-800"
-                                      )}>
-                                        <DialogHeader className="pb-4">
-                                          <DialogTitle className={cn(
-                                            "text-lg font-bold",
-                                            isDark ? "text-red-200" : "text-neutral-800"
-                                          )}>Are you sure?</DialogTitle>
-                                          <DialogDescription className={cn(
-                                            "text-sm mt-1",
-                                            isDark ? "text-red-300" : "text-neutral-600"
-                                          )}>
-                                            This will permanently delete the flow "<span className={cn(
-                                              "font-semibold",
-                                              isDark ? "text-red-200" : "text-neutral-800"
-                                            )}>{flow.name}</span>".
-                                            This action cannot be undone.
-                                          </DialogDescription>
-                                        </DialogHeader>
-                                        <DialogFooter className={cn(
-                                          "pt-4 gap-2 border-t-2",
-                                          isDark ? "border-red-500/50" : "border-neutral-300"
-                                        )}>
-                                          <Button
-                                            variant="outline"
-                                            onClick={() => setFlowToDelete(null)}
-                                            className={isDark ? darkOutlineCartoonButtonStyle : outlineCartoonButtonStyle}
-                                          >
-                                            Cancel
-                                          </Button>
-                                          <Button
-                                            onClick={confirmDeleteFlow}
-                                            className={isDark ? darkDestructiveCartoonButtonStyle : destructiveCartoonButtonStyle}
-                                          >
-                                            Delete Permanently
-                                          </Button>
-                                        </DialogFooter>
-                                      </DialogContent>
-                                    </Dialog>
-                                    </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                      </Table>
-                    ) : (
-                      /* Empty State for the selected collection: Dark or Light Cartoon style */
-                      <div className={cn(
-                        "flex items-center justify-center h-full text-center p-6",
-                        isDark ? "text-blue-400" : "text-neutral-500"
-                      )}>
-                        <p className="text-sm">No flows found in this collection.</p>
-                      </div>
-                    )}
-                 </div>
-              </div>
+                <Button className={styles.btn('outline')} onClick={exportCurrentFlow}>
+                  <Download className="h-4 w-4" /> Export Current
+                </Button>
+                <Button className={styles.btn('outline')} onClick={() => setImportDlg(true)}>
+                  <Upload className="h-4 w-4" /> Import Flow
+                </Button>
+                <Button className={styles.btn('outline')} disabled={!currentFlowId} onClick={() => setShareDlg(true)}>
+                  <Share2 className="h-4 w-4" /> Share Current
+                </Button>
+
+                {/* browse */}
+                <h3 className="text-xs font-bold mt-4 mb-1 uppercase tracking-wider">Browse</h3>
+                <Button className={styles.sideItem(view === null)} variant="ghost" size="sm" onClick={() => setView(null)}>
+                  <FolderOpen className="h-4 w-4 text-blue-500" /> All
+                </Button>
+                <Button className={styles.sideItem(view === 'Templates')} variant="ghost" size="sm" onClick={() => setView('Templates')}>
+                  <BrainCircuit className="h-4 w-4 text-purple-500" /> Templates
+                </Button>
+                <Button className={styles.sideItem(view === '__UNCATEGORIZED__')} variant="ghost" size="sm" onClick={() => setView('__UNCATEGORIZED__')}>
+                  <Folder className="h-4 w-4 text-gray-400" /> <span className="italic">Uncategorized</span>
+                </Button>
+                {collections.length > 0 && <hr className={cn('my-2', styles.dark ? 'border-blue-500/40' : 'border-slate-300')} />}
+                {collections.map(c => (
+                  <Button key={c} className={styles.sideItem(view === c)} variant="ghost" size="sm" onClick={() => setView(c)}>
+                    <Folder className="h-4 w-4 text-cyan-500" /> {c}
+                  </Button>
+                ))}
+              </aside>
+
+              {/* main */}
+              <main className="flex-grow flex flex-col overflow-hidden">
+                {/* toolbar */}
+                <div className="flex items-center gap-3 mb-4 flex-wrap">
+                  <div className="relative flex-grow max-w-xs">
+                    <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4', styles.dark ? 'text-blue-400/70' : 'text-slate-400')} />
+                    <Input
+                      placeholder="Search…"
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      className={cn(styles.input, 'pl-9 h-9 text-xs')}
+                    />
+                  </div>
+                  <Select value={sort} onValueChange={v => setSort(v as SortOption)}>
+                    <SelectTrigger className={cn(styles.input, 'h-9 text-xs flex gap-1.5 items-center')}>
+                      <ArrowUpDown className="h-3.5 w-3.5 opacity-70" />
+                      <SelectValue placeholder="Sort" />
+                    </SelectTrigger>
+                    <SelectContent className={styles.dropdown}>
+                      <SelectItem value="date_desc">Modified: Newest</SelectItem>
+                      <SelectItem value="date_asc">Modified: Oldest</SelectItem>
+                      <SelectItem value="name_asc">Name: A-Z</SelectItem>
+                      <SelectItem value="name_desc">Name: Z-A</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button className={styles.btn('outline')} disabled={!currentFlowId} onClick={() => setShareDlg(true)}>
+                    <Share2 className="h-3.5 w-3.5" /> Share
+                  </Button>
+                  <Button className={styles.btn('primary')} onClick={() => setSaveDlg(true)} disabled={isSaving || isLoading}>
+                    {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                    Save
+                  </Button>
+                </div>
+
+                {/* grid */}
+                <div className="flex-grow overflow-y-auto p-1">
+                  {list.length ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {list.map(f => (
+                        <FlowCard
+                          key={f.id}
+                          flow={f}
+                          current={currentFlowId === f.id && !f.isTemplate}
+                          styles={styles}
+                          load={loadItem}
+                          del={deleteItem}
+                          loading={isLoading}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={cn('flex flex-col items-center justify-center h-full text-center p-10', styles.dark ? 'text-blue-400/70' : 'text-slate-500')}>
+                      <Search className="h-12 w-12 mb-4 opacity-50" />
+                      <p>No flows match your criteria</p>
+                    </div>
+                  )}
+                </div>
+              </main>
             </div>
 
-            {/* Footer: Dark or Light Cartoon style */}
-            <DrawerFooter className={cn(
-              "pt-4 mt-auto border-t-2 flex-shrink-0",
-              isDark ? "border-blue-500/50" : "border-neutral-200"
-            )}>
+            {/* footer */}
+            <DrawerFooter className={cn('border-t-[3px] pt-4 flex justify-end', styles.dark ? 'border-blue-600' : 'border-slate-900')}>
               <DrawerClose asChild>
-                <Button 
-                  variant="outline" 
-                  className={isDark ? darkOutlineCartoonButtonStyle : outlineCartoonButtonStyle}
-                >
-                  Close
-                </Button>
+                <Button className={styles.btn('outline')}>Close</Button>
               </DrawerClose>
             </DrawerFooter>
           </div>
         </DrawerContent>
       </Drawer>
-      
-      {/* Save Flow Dialog: Dark or Light Cartoon style */}
-      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
-        <DialogContent className={cn(
-          "p-6 sm:max-w-lg shadow-xl rounded-xl",
-          isDark 
-            ? "bg-neutral-900 border-2 border-blue-500 text-blue-200" 
-            : "bg-white border-2 border-neutral-800 text-neutral-800"
-        )}>
-          <DialogHeader className={cn(
-            "pb-4 mb-2 border-b-2",
-            isDark ? "border-blue-500/50" : "border-neutral-300"
-          )}>
-            <DialogTitle className={cn(
-              "text-base font-bold",
-              isDark ? "text-blue-200" : "text-neutral-800"
-            )}>Save Flow</DialogTitle>
-            <DialogDescription className={cn(
-              "text-sm mt-1",
-              isDark ? "text-blue-400" : "text-neutral-600"
-            )}>
-              Assign a name, collection, and optional description.
-            </DialogDescription>
+
+      {/*-------------------------------- save dialog --------------------------------*/}
+      <Dialog open={saveDlg} onOpenChange={setSaveDlg}>
+        <DialogContent className={styles.dlg()}>
+          <DialogHeader className="p-5 border-b-[2px]">
+            <DialogTitle>Save Current Flow</DialogTitle>
+            <DialogDescription>Assign a name and (optional) collection.</DialogDescription>
           </DialogHeader>
-          
-          {/* Adjusted spacing with Dark or Light cartoon styling */}
-          <div className="space-y-4 py-2">
-            {/* Name field: Dark or Light Cartoon style */}
+
+          <div className="px-5 py-4 space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="flow-name" className={cn(
-                "text-sm font-semibold",
-                isDark ? "text-blue-300" : "text-neutral-700"
-              )}>Name</Label>
-              <Input
-                id="flow-name"
-                value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
-                placeholder="e.g., User Authentication Flow"
-                className={cn(
-                  "rounded-lg focus:ring-2 h-10",
-                  isDark 
-                    ? "bg-neutral-800 border-2 border-blue-500/50 text-blue-200 focus:ring-blue-400 focus:border-blue-400"
-                    : "bg-white border-2 border-neutral-800 text-neutral-800 focus:ring-blue-500 focus:border-blue-500"
-                )}
-              />
+              <Label htmlFor="name">Name *</Label>
+              <Input id="name" className={styles.input} value={name} onChange={e => setName(e.target.value)} />
             </div>
 
-            {/* Collection field: Dark or Light Cartoon style */}
             <div className="space-y-1.5">
-              <Label htmlFor="flow-collection" className={cn(
-                "text-sm font-semibold",
-                isDark ? "text-blue-300" : "text-neutral-700"
-              )}>Collection</Label>
-              {isCreatingCollection ? (
-                 <div className="flex items-center gap-2">
-                   <Input
-                    id="flow-collection-new"
-                    value={saveCollection}
-                    onChange={(e) => setSaveCollection(e.target.value)}
-                    placeholder="New collection name"
-                    className={cn(
-                      "flex-grow rounded-lg focus:ring-2 h-10",
-                      isDark 
-                        ? "bg-neutral-800 border-2 border-blue-500/50 text-blue-200 focus:ring-blue-400 focus:border-blue-400"
-                        : "bg-white border-2 border-neutral-800 text-neutral-800 focus:ring-blue-500 focus:border-blue-500"
-                    )}
-                  />
-                  {/* Cancel button: Dark or Light Cartoon style */}
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setIsCreatingCollection(false)} 
-                    className={cn(
-                      "text-xs h-9 px-2 rounded-lg",
-                      isDark 
-                        ? "text-blue-400 hover:bg-neutral-800 hover:text-blue-300" 
-                        : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
-                    )}
-                  >
+              <Label>Collection</Label>
+              {newColl ? (
+                <div className="flex gap-2">
+                  <Input className={styles.input} value={coll} onChange={e => setColl(e.target.value)} placeholder="New collection…" />
+                  <Button size="sm" variant="ghost" onClick={() => setNewColl(false)}>
                     Cancel
                   </Button>
                 </div>
               ) : (
-                <Select
-                  value={saveCollection || "__NONE__"}
-                  onValueChange={(value) => {
-                    if (value === '__CREATE_NEW__') {
-                      setIsCreatingCollection(true);
-                      setSaveCollection('');
-                    } else {
-                      setSaveCollection(value === '__NONE__' ? '' : value);
-                    }
-                  }}
-                >
-                  {/* Trigger: Dark or Light Cartoon style */}
-                  <SelectTrigger id="flow-collection" className={cn(
-                    "rounded-lg h-10 focus:ring-2",
-                    isDark 
-                      ? "bg-neutral-800 border-2 border-blue-500/50 text-blue-200 focus:ring-blue-400 focus:border-blue-400"
-                      : "bg-white border-2 border-neutral-800 text-neutral-800 focus:ring-blue-500 focus:border-blue-500"
-                  )}>
-                    <SelectValue placeholder="Select or create collection..." />
+                <Select value={coll || '__NONE__'} onValueChange={v => {
+                  if (v === '__CREATE_NEW__') { setNewColl(true); setColl(''); }
+                  else setColl(v === '__NONE__' ? '' : v);
+                }}>
+                  <SelectTrigger className={styles.input}>
+                    <SelectValue placeholder="Select…" />
                   </SelectTrigger>
-                  {/* Content/items: Dark or Light Cartoon style */}
-                  <SelectContent className={cn(
-                    "rounded-lg shadow-xl",
-                    isDark 
-                      ? "bg-neutral-800 border-2 border-blue-500 text-blue-200" 
-                      : "bg-white border-2 border-neutral-800 text-neutral-800"
-                  )}>
-                    <SelectItem value="__NONE__" className={cn(
-                      "italic cursor-pointer",
-                      isDark ? "text-blue-400 hover:bg-neutral-700" : "text-neutral-500 hover:bg-neutral-100"
-                    )}>No Collection</SelectItem>
-                    <SelectSeparator className={isDark ? "bg-blue-500/30" : "bg-neutral-300"} />
-                    {existingCollections.map(col => (
-                      <SelectItem 
-                        key={col} 
-                        value={col} 
-                        className={cn(
-                          "cursor-pointer",
-                          isDark ? "hover:bg-neutral-700" : "hover:bg-neutral-100"
-                        )}
-                      >
-                        {col}
-                      </SelectItem>
-                    ))}
-                    <SelectSeparator className={isDark ? "bg-blue-500/30" : "bg-neutral-300"}/>
-                    <SelectItem 
-                      value="__CREATE_NEW__" 
-                      className={cn(
-                        "cursor-pointer flex items-center gap-1.5",
-                        isDark ? "text-blue-400 hover:bg-neutral-700" : "text-blue-600 hover:bg-neutral-100"
-                      )}
-                    >
-                      <PlusCircle className="h-4 w-4"/> Create New...
+                  <SelectContent className={styles.dropdown}>
+                    <SelectItem value="__NONE__">No Collection</SelectItem>
+                    <SelectSeparator />
+                    {collections.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    <SelectSeparator />
+                    <SelectItem value="__CREATE_NEW__" className="flex gap-1.5">
+                      <PlusCircle className="h-4 w-4" /> Create New…
                     </SelectItem>
                   </SelectContent>
                 </Select>
               )}
             </div>
 
-            {/* Description field: Dark or Light Cartoon style */}
             <div className="space-y-1.5">
-              <Label htmlFor="flow-description" className={cn(
-                "text-sm font-semibold",
-                isDark ? "text-blue-300" : "text-neutral-700"
-              )}>
-                Description <span className={isDark ? "text-blue-400/70" : "text-neutral-500"}>(Optional)</span>
-              </Label>
-              <Textarea
-                id="flow-description"
-                value={saveDescription}
-                onChange={(e) => setSaveDescription(e.target.value)}
-                placeholder="Describe what this flow does..."
-                className={cn(
-                  "rounded-lg focus:ring-2 min-h-[70px] text-sm",
-                  isDark 
-                    ? "bg-neutral-800 border-2 border-blue-500/50 text-blue-200 focus:ring-blue-400 focus:border-blue-400"
-                    : "bg-white border-2 border-neutral-800 text-neutral-800 focus:ring-blue-500 focus:border-blue-500"
-                )}
+              <Label htmlFor="customSlug">Custom Slug (Optional)</Label>
+              <Input 
+                id="customSlug" 
+                className={styles.input} 
+                value={customSlug} 
+                onChange={(e) => setCustomSlug(generateSlug(e.target.value))} 
+                placeholder="e.g., my-awesome-flow" 
               />
+              {customSlug && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Preview: {typeof window !== 'undefined' ? window.location.origin : ''}/flow/{customSlug}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="desc">Description</Label>
+              <Textarea id="desc" className={styles.textarea} value={desc} onChange={e => setDesc(e.target.value)} />
             </div>
           </div>
-          
-          {/* Footer buttons: Dark or Light Cartoon style */}
-          <DialogFooter className={cn(
-            "pt-5 mt-3 gap-2 border-t-2",
-            isDark ? "border-blue-500/50" : "border-neutral-300"
-          )}>
-             <DialogClose asChild>
-                <Button 
-                  variant="outline" 
-                  className={isDark ? darkOutlineCartoonButtonStyle : outlineCartoonButtonStyle}
-                >
-                  Cancel
-                </Button>
+
+          <DialogFooter className="p-4 border-t-[2px] flex justify-end gap-2">
+            <DialogClose asChild>
+              <Button className={styles.btn('outline')}>Cancel</Button>
             </DialogClose>
-            <Button
-              onClick={handleSaveFlow}
-              disabled={!saveName.trim() || isSaving}
-              className={isDark ? darkPrimaryCartoonButtonStyle : primaryCartoonButtonStyle}
-            >
-              {isSaving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              {isSaving ? 'Saving...' : 'Save Flow'}
+            <Button className={styles.btn('primary')} onClick={handleSaveFlow} disabled={!name.trim() || isSaving}>
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isSaving ? 'Saving…' : currentFlowId ? 'Update' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Import Flow Dialog: Dark or Light Cartoon style */}
-      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <DialogContent className={cn(
-          "p-6 sm:max-w-lg shadow-xl rounded-xl",
-          isDark 
-            ? "bg-neutral-900 border-2 border-blue-500 text-blue-200" 
-            : "bg-white border-2 border-neutral-800 text-neutral-800"
-        )}>
-          <DialogHeader className={cn(
-            "pb-4 mb-2 border-b-2",
-            isDark ? "border-blue-500/50" : "border-neutral-300"
-          )}>
-            <DialogTitle className={cn(
-              "text-base font-bold",
-              isDark ? "text-blue-200" : "text-neutral-800"
-            )}>Import Flow</DialogTitle>
-            <DialogDescription className={cn(
-              "text-sm mt-1",
-              isDark ? "text-blue-400" : "text-neutral-600"
-            )}>
-              Select a `.json` file exported from this application.
-            </DialogDescription>
+
+      {/*-------------------------------- import dialog --------------------------------*/}
+      <Dialog open={importDlg} onOpenChange={setImportDlg}>
+        <DialogContent className={styles.dlg()}>
+          <DialogHeader className="p-5 border-b-[2px]">
+            <DialogTitle>Import Flow</DialogTitle>
+            <DialogDescription>Select a previously exported .json file.</DialogDescription>
           </DialogHeader>
-          
-          <div className="py-4">
-            <Label htmlFor="flow-import" className={cn(
-              "text-sm font-semibold mb-1.5 block",
-              isDark ? "text-blue-300" : "text-neutral-700"
-            )}>Flow File (.json)</Label>
-            {/* File input: Dark or Light Cartoon style */}
+
+          <div className="px-5 py-4 space-y-4">
             <Input
-              ref={fileInputRef}
-              id="flow-import"
+              ref={fileRef}
               type="file"
               accept=".json,application/json"
-              onChange={handleImportFlow}
-              className={cn(
-                "rounded-lg focus:ring-2 cursor-pointer",
-                isDark 
-                  ? "bg-neutral-800 border-2 border-blue-500/50 text-blue-300 focus:ring-blue-400 focus:border-blue-400 file:mr-4 file:py-2 file:px-4 file:rounded-l-md file:border-r-2 file:border-r-blue-500/50 file:border-y-0 file:border-l-0 file:text-sm file:font-medium file:bg-neutral-700 file:text-blue-300 hover:file:bg-neutral-600"
-                  : "bg-white border-2 border-neutral-800 text-neutral-700 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-md file:border-r-2 file:border-r-neutral-800 file:border-y-0 file:border-l-0 file:text-sm file:font-medium file:bg-neutral-100 file:text-neutral-700 hover:file:bg-neutral-200"
-              )}
+              onChange={importFile}
+              className={cn(styles.input, 'cursor-pointer file:mr-4 file:py-2.5 file:px-4 file:rounded-l-md file:border-0 file:border-r-[2px] file:h-full')}
             />
           </div>
-          
-          <DialogFooter className={cn(
-            "pt-5 mt-3 gap-2 border-t-2",
-            isDark ? "border-blue-500/50" : "border-neutral-300"
-          )}>
+
+          <DialogFooter className="p-4 border-t-[2px] flex justify-end">
             <DialogClose asChild>
-              <Button 
-                variant="outline" 
-                className={isDark ? darkOutlineCartoonButtonStyle : outlineCartoonButtonStyle}
-              >
-                Cancel
-              </Button>
+              <Button className={styles.btn('outline')}>Close</Button>
             </DialogClose>
-            {/* Import happens on change, no primary action needed here */}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/*-------------------------------- delete dialog --------------------------------*/}
+      <Dialog open={!!deleteDlg} onOpenChange={() => setDeleteDlg(null)}>
+        <DialogContent className={styles.dlg(true)}>
+          <DialogHeader className="p-5 border-b-[2px]">
+            <DialogTitle className="flex items-center gap-2 text-red-500">
+              <Trash2 className="h-5 w-5" /> Confirm Deletion
+            </DialogTitle>
+            <DialogDescription>
+              Delete "<strong>{deleteDlg?.name}</strong>" permanently?
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="p-4 border-t-[2px] flex justify-end gap-2">
+            <DialogClose asChild>
+              <Button className={styles.btn('outline')}>Cancel</Button>
+            </DialogClose>
+            <Button className={styles.btn('destructive')} onClick={confirmDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/*-------------------------------- share dialog --------------------------------*/}
+      <ShareFlowDialog isOpen={shareDlg} onOpenChange={setShareDlg} />
     </>
   );
 }
