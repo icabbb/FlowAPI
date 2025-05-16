@@ -25,6 +25,19 @@ import { executeTransformNodeLogic } from '@/services/executions/transform';
 import { executeConditionalNodeLogic } from '@/services/executions/conditional';
 import { executeLoopNodeLogic } from '@/services/executions/loop';
 import { executeExportNodeLogic } from '@/services/executions/export';
+import { useFlowStore } from '@/store';
+
+
+function getMergedInput(targetNode: Node, edges: Edge[]): Record<string, any> {
+  const nodeResults = useFlowStore.getState().nodeResults;
+  const incomingEdges = edges.filter(e => e.target === targetNode.id);
+
+  const mergedInput: Record<string, any> = {};
+  for (const edge of incomingEdges) {
+    mergedInput[edge.source] = nodeResults[edge.source]?.data ?? null;
+  }
+  return mergedInput;
+}
 
 
 export async function triggerNextNodes(
@@ -121,18 +134,19 @@ export async function triggerNextNodes(
             setFlowContextVariable
           );
           break;
-        case 'transformNode':
-          await executeTransformNodeLogic(
-            target as Node<TransformNodeData>,
-            outputData,
-            nodes,
-            edges,
-            setNodeResult,
-            updateNodeData,
-            resolveVariable,
-            setFlowContextVariable
-          );
-          break;
+          case 'transformNode':
+            const mergedInput = getMergedInput(target, edges);
+            await executeTransformNodeLogic(
+              target as Node<TransformNodeData>,
+              mergedInput,
+              nodes,
+              edges,
+              setNodeResult,
+              updateNodeData,
+              resolveVariable,
+              setFlowContextVariable
+            );
+            break;
         case 'conditionalNode':
           await executeConditionalNodeLogic(
             target as Node<ConditionalNodeData>,

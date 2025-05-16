@@ -3,43 +3,36 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import {
-  Check,
-  Copy,
-  Link2,
-  Loader2,
-  Mail,
-  Share2,
-  Shield,
-  Trash2,
-  Users,
+    Check,
+    Copy,
+    Link2,
+    Loader2,
+    Mail,
+    Share2,
+    Shield,
+    Trash2,
+    Users,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
@@ -78,7 +71,7 @@ export function CollaborationManager({ flowId, flowName }: CollaborationManagerP
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('collaborators');
   const [email, setEmail] = useState('');
-  const [permission, setPermission] = useState<PermissionLevel>('view');
+  const [permission] = useState<PermissionLevel>('edit');
   const [isOwner, setIsOwner] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
@@ -409,33 +402,6 @@ export function CollaborationManager({ flowId, flowName }: CollaborationManagerP
                             : 'bg-white border-slate-900 text-slate-800'
                         )}
                       />
-                    </div>
-                    <div>
-                      <Label htmlFor="perm">Permiso</Label>
-                      <Select value={permission} onValueChange={(v) => setPermission(v as PermissionLevel)}>
-                        <SelectTrigger
-                          id="perm"
-                          className={cn(
-                            'mt-1 border-[3px] rounded-lg',
-                            cartoonShadow,
-                            isDark
-                              ? 'bg-[#0f172a] border-blue-600 text-blue-100'
-                              : 'bg-white border-slate-900 text-slate-800'
-                          )}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent
-                          className={cn(
-                            'border-[3px] rounded-lg',
-                            cartoonShadow,
-                            isDark ? 'bg-[#1e293b] border-blue-600' : 'bg-white border-slate-900'
-                          )}
-                        >
-                          <SelectItem value="view">Sólo lectura</SelectItem>
-                          <SelectItem value="edit">Editar</SelectItem>
-                        </SelectContent>
-                      </Select>
                     </div>
                   </div>
 

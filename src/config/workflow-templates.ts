@@ -412,6 +412,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
         source: 'template-http-1',
         target: 'template-json-1',
         type: 'animated',
+        sourceHandle: 'output',
       },
     ],
   },
@@ -460,12 +461,14 @@ export const workflowTemplates: WorkflowTemplate[] = [
         source: 'sf-http-1',
         target: 'sf-select-1',
         type: 'animated',
+        sourceHandle: 'output',
       },
       {
         id: 'e-sf-select-json',
         source: 'sf-select-1',
         target: 'sf-json-1',
         type: 'animated',
+        sourceHandle: 'output',
       },
     ],
   },
@@ -518,9 +521,9 @@ export const workflowTemplates: WorkflowTemplate[] = [
       },
     ],
     edges: [
-      { id: 'e-svc-http-select', source: 'svc-http-1', target: 'svc-select-1', type: 'animated' },
-      { id: 'e-svc-select-setvar', source: 'svc-select-1', target: 'svc-setvar-1', type: 'animated' },
-      { id: 'e-svc-setvar-json', source: 'svc-setvar-1', target: 'svc-json-1', type: 'animated' },
+      { id: 'e-svc-http-select', source: 'svc-http-1', target: 'svc-select-1', type: 'animated' , sourceHandle: 'output' },
+      { id: 'e-svc-select-setvar', source: 'svc-select-1', target: 'svc-setvar-1', type: 'animated' , sourceHandle: 'output' },
+      { id: 'e-svc-setvar-json', source: 'svc-setvar-1', target: 'svc-json-1', type: 'animated' , sourceHandle: 'output' },
     ],
   },
   {
@@ -676,6 +679,62 @@ export const workflowTemplates: WorkflowTemplate[] = [
       { id: 'e-post-output-env', source: 'reqres-post-with-env-token', target: 'reqres-env-post-output', type: 'animated', sourceHandle: 'output' },
     ],
   },
+  {
+    name: "Parallel Fetch & Aggregation (Real)",
+    description: "Obtiene usuario y posts, los une en el output.",
+    nodes: [
+      {
+        id: 'get-user',
+        type: 'httpRequest',
+        position: { x: 100, y: 100 },
+        data: {
+          label: "User",
+          method: 'GET',
+          url: 'https://jsonplaceholder.typicode.com/users/1',
+          tutorialText: "Obtiene info del usuario 1.",
+        }
+      },
+      {
+        id: 'get-posts',
+        type: 'httpRequest',
+        position: { x: 100, y: 250 },
+        data: {
+          label: "Posts de User",
+          method: 'GET',
+          url: 'https://jsonplaceholder.typicode.com/posts?userId=1',
+          tutorialText: "Obtiene los posts del usuario 1.",
+        }
+      },
+      {
+        id: 'aggregate',
+        type: 'transformNode',
+        position: { x: 400, y: 180 },
+        data: {
+          label: "Merge User & Posts",
+          mappingRules: [
+            { id: crypto.randomUUID(), inputPath: '{{get-user::$}}', outputPath: 'user', enabled: true },
+            { id: crypto.randomUUID(), inputPath: '{{get-posts::$}}', outputPath: 'posts', enabled: true }
+          ],
+          tutorialText: "Une ambos resultados en un solo objeto: {user, posts}.",
+        }
+      },
+      {
+        id: 'output',
+        type: 'jsonNode',
+        position: { x: 700, y: 180 },
+        data: {
+          label: "Resultado Unificado",
+          width: 400,
+          tutorialText: "Muestra el objeto combinado.",
+        }
+      },
+    ],
+    edges: [
+      { id: 'e-user-agg', source: 'get-user', target: 'aggregate', type: 'animated', sourceHandle: 'output' },
+      { id: 'e-posts-agg', source: 'get-posts', target: 'aggregate', type: 'animated', sourceHandle: 'output' },
+      { id: 'e-agg-out', source: 'aggregate', target: 'output', type: 'animated', sourceHandle: 'output' },
+    ],
+  },
 ]; 
 
 export const complexWorkflowExample: WorkflowTemplate = {
@@ -776,3 +835,60 @@ export const complexWorkflowExample: WorkflowTemplate = {
     { id: 'cplx-e-5default-6b', source: 'complex-check-status', target: 'complex-output-error', type: 'animated', sourceHandle: 'default' },
   ]
 }; 
+
+export const PARALLEL_AGGREGATION_REAL: WorkflowTemplate = {
+  name: "Parallel Fetch & Aggregation (Real)",
+  description: "Obtiene usuario y posts, los une en el output.",
+  nodes: [
+    {
+      id: 'get-user',
+      type: 'httpRequest',
+      position: { x: 100, y: 100 },
+      data: {
+        label: "User",
+        method: 'GET',
+        url: 'https://jsonplaceholder.typicode.com/users/1',
+        tutorialText: "Obtiene info del usuario 1.",
+      }
+    },
+    {
+      id: 'get-posts',
+      type: 'httpRequest',
+      position: { x: 100, y: 250 },
+      data: {
+        label: "Posts de User",
+        method: 'GET',
+        url: 'https://jsonplaceholder.typicode.com/posts?userId=1',
+        tutorialText: "Obtiene los posts del usuario 1.",
+      }
+    },
+    {
+      id: 'aggregate',
+      type: 'transformNode',
+      position: { x: 400, y: 180 },
+      data: {
+        label: "Merge User & Posts",
+        mappingRules: [
+          { id: crypto.randomUUID(), inputPath: '{{get-user::$}}', outputPath: 'user', enabled: true },
+          { id: crypto.randomUUID(), inputPath: '{{get-posts::$}}', outputPath: 'posts', enabled: true }
+        ],
+        tutorialText: "Une ambos resultados en un solo objeto: {user, posts}.",
+      }
+    },
+    {
+      id: 'output',
+      type: 'jsonNode',
+      position: { x: 700, y: 180 },
+      data: {
+        label: "Resultado Unificado",
+        width: 400,
+        tutorialText: "Muestra el objeto combinado.",
+      }
+    },
+  ],
+  edges: [
+    { id: 'e-user-agg', source: 'get-user', target: 'aggregate', type: 'animated', sourceHandle: 'output' },
+    { id: 'e-posts-agg', source: 'get-posts', target: 'aggregate', type: 'animated', sourceHandle: 'output' },
+    { id: 'e-agg-out', source: 'aggregate', target: 'output', type: 'animated', sourceHandle: 'output' },
+  ],
+};

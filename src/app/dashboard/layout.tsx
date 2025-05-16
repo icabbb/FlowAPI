@@ -69,6 +69,7 @@ function AppHeader({ onOpenSaveDialog, onOpenAiDialog }: AppHeaderProps) {
     saveCurrentFlow,
     isRunning,
     runFlow,
+    pendingInvitationsCount,
   } = useFlowStore();
 
   const { theme } = useTheme();
@@ -106,14 +107,18 @@ function AppHeader({ onOpenSaveDialog, onOpenAiDialog }: AppHeaderProps) {
         <ThemeToggle />
 
         <SignedIn>
-
           <Button
             size="sm"
-            className={outlineBtn(dark)}
+            className={outlineBtn(dark) + " relative"}
             onClick={() => router.push('/dashboard/shared')}
           >
             <Share className="h-4 w-4" />
             <span className="hidden sm:inline ml-1.5">Shared</span>
+            {pendingInvitationsCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                {pendingInvitationsCount}
+              </span>
+            )}
           </Button>
 
           <Button

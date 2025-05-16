@@ -12,13 +12,13 @@ import {
   Section,
   Text,
 } from '@react-email/components';
+import type { Properties } from 'csstype';
 
 interface EmailTemplateProps {
   inviterName: string;
   flowName: string;
   invitationUrl: string;
   appName: string;
-  logoUrl?: string; // logo opcional
 }
 
 export const EmailTemplate: React.FC<EmailTemplateProps> = ({
@@ -26,9 +26,8 @@ export const EmailTemplate: React.FC<EmailTemplateProps> = ({
   flowName,
   invitationUrl,
   appName,
- // tu logo aquí!
 }) => {
-  const previewText = `🚀 ¡Colabora en "${flowName}" en ${appName}!`;
+  const previewText = `Invitación para colaborar en "${flowName}"`;
 
   return (
     <Html>
@@ -36,46 +35,29 @@ export const EmailTemplate: React.FC<EmailTemplateProps> = ({
       <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
-          {/* Header gradient + logo */}
-          <Section style={headerGradient}>
-            <Heading style={brandHeading}>{appName}</Heading>
+          <Section style={header}>
+            <Text style={appNameStyle}>{appName}</Text>
           </Section>
 
-          {/* Speech bubble de invitación */}
-          <Section style={bubbleContainer}>
-            <div style={bubbleSpeech}>
-              <Text style={bubbleText}>
-                <b>{inviterName}</b> te ha invitado a colaborar en <b>“{flowName}”</b>
-              </Text>
-              <div style={triangleDown}></div>
-            </div>
+          <Section style={content}>
+            <Text style={text}>
+              <strong>{inviterName}</strong> te ha invitado a colaborar en <strong>"{flowName}"</strong>
+            </Text>
+            
+            <Section style={buttonContainer}>
+              <Button style={button} href={invitationUrl}>
+                Unirse al proyecto
+              </Button>
+            </Section>
+
+            <Text style={linkText}>
+              O copia este enlace: <Link href={invitationUrl} style={link}>{invitationUrl}</Link>
+            </Text>
           </Section>
 
-          {/* Botón cartoon pro */}
-          <Section style={btnContainer}>
-            <Button
-              style={button}
-              href={invitationUrl}
-            >
-              🎉 Aceptar invitación
-            </Button>
-          </Section>
-
-          <Text style={{ ...paragraph, textAlign: 'center', marginBottom: 8 }}>
-            O copia y pega este enlace:
-          </Text>
-          <Text style={{ ...link, textAlign: 'center' }}>
-            <Link href={invitationUrl} style={link}>
-              {invitationUrl}
-            </Link>
-          </Text>
-
-          <Hr style={hr} />
-          <Text style={footerNote}>
+          <Hr style={divider} />
+          <Text style={footer}>
             Si no esperabas esta invitación, puedes ignorar este mensaje.
-          </Text>
-          <Text style={footerCopyright}>
-            © {new Date().getFullYear()} {appName}. Todos los derechos reservados.
           </Text>
         </Container>
       </Body>
@@ -83,132 +65,90 @@ export const EmailTemplate: React.FC<EmailTemplateProps> = ({
   );
 };
 
-// Estilos pro cartoon SaaS
+// Minimalist styles
 const main = {
-  background: 'linear-gradient(135deg, #e0f2fe 0%, #f3e8ff 100%)',
-  fontFamily: 'Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif',
-  minHeight: '100vh',
-  padding: 0,
+  backgroundColor: '#ffffff',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  padding: '24px 0',
+  margin: 0,
+  color: '#333333',
+  lineHeight: 1.5,
 };
+
 const container = {
-  backgroundColor: '#fff',
-  margin: '40px auto',
-  borderRadius: 18,
-  maxWidth: 480,
-  boxShadow: '0 8px 32px 0 rgba(80, 91, 219, 0.09), 0 1.5px 0 #38bdf8',
-  padding: '32px 20px 22px 20px',
-};
-const headerGradient = {
-  background: 'linear-gradient(90deg, #38bdf8 40%, #a78bfa 100%)',
-  borderRadius: 15,
-  margin: '-32px -20px 24px -20px',
-  padding: '20px 0',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 10,
-};
-const logo = {
-  borderRadius: 8,
-  background: '#fff',
-  padding: 6,
-  boxShadow: '0 2px 8px 0 rgba(80,91,219,0.08)',
-  marginRight: 8,
-};
-const brandHeading = {
-  color: '#fff',
-  fontSize: 25,
-  fontWeight: 900,
-  letterSpacing: '-1px',
-  margin: 0,
+  maxWidth: '600px',
+  margin: '0 auto',
+  padding: '0 24px',
 };
 
-const bubbleContainer = {
-  display: 'flex',
-  justifyContent: 'center',
-  marginBottom: 18,
+interface StyleProps extends React.CSSProperties {
+  textAlign?: 'left' | 'center' | 'right' | 'justify' | 'start' | 'end';
+  wordBreak?: 'normal' | 'break-all' | 'keep-all' | 'break-word';
+}
+
+const header: StyleProps = {
+  marginBottom: '32px',
+  textAlign: 'center',
 };
 
-const bubbleSpeech = {
-  background: '#f0f9ff',
-  color: '#2563eb',
-  borderRadius: 18,
-  padding: '18px 28px',
-  boxShadow: '0 4px 0 #38bdf8',
-  fontWeight: 700,
-  fontSize: 18,
-  position: 'relative' as const,
-  maxWidth: 360,
-};
-
-const bubbleText = {
-  margin: 0,
-  fontSize: 17,
+const appNameStyle: StyleProps = {
+  fontSize: '24px',
   fontWeight: 600,
-  letterSpacing: '-0.1px',
-  textAlign: 'center' as const,
-};
-
-// Triángulo speech bubble
-const triangleDown = {
-  position: 'absolute' as const,
-  left: '50%',
-  transform: 'translateX(-50%)',
-  bottom: -16,
-  width: 0,
-  height: 0,
-  borderLeft: '16px solid transparent',
-  borderRight: '16px solid transparent',
-  borderTop: '16px solid #f0f9ff',
-  filter: 'drop-shadow(0 2px 0 #38bdf8)',
-};
-
-const btnContainer = {
-  textAlign: 'center' as const,
-  margin: '32px 0 22px 0',
-};
-
-const button = {
-  background: 'linear-gradient(90deg, #38bdf8 60%, #a78bfa 100%)',
-  borderRadius: '10px',
-  color: '#fff',
-  fontWeight: 700,
-  fontSize: '18px',
-  boxShadow: '0 4px 0 #2563eb, 0 10px 24px 0 rgba(80,91,219,0.08)',
-  textDecoration: 'none',
-  padding: '16px 28px',
-  border: 'none',
-  display: 'inline-block',
-  transition: 'all 0.15s cubic-bezier(.4,2,.45,.8)',
-};
-
-const paragraph = {
-  fontSize: '16px',
-  lineHeight: '26px',
-  margin: '8px 0 8px 0',
-};
-
-const link = {
-  color: '#38bdf8',
-  textDecoration: 'underline',
-  wordBreak: 'break-all' as const,
-  fontSize: 15,
-};
-
-const hr = {
-  borderColor: '#e0e7ef',
-  margin: '32px 0 18px 0',
-};
-
-const footerNote = {
-  color: '#64748b',
-  fontSize: '14px',
-  margin: '0 0 6px 0',
-  textAlign: 'center' as const,
-};
-const footerCopyright = {
-  color: '#94a3b8',
-  fontSize: '13px',
-  textAlign: 'center' as const,
+  color: '#2563eb',
   margin: 0,
+};
+
+const content: StyleProps = {
+  marginBottom: '32px',
+};
+
+const text: StyleProps = {
+  fontSize: '16px',
+  margin: '0 0 24px 0',
+  textAlign: 'center',
+  color: '#333333',
+};
+
+const buttonContainer: StyleProps = {
+  textAlign: 'center',
+  margin: '32px 0',
+};
+
+const button: StyleProps = {
+  backgroundColor: '#2563eb',
+  color: '#ffffff',
+  padding: '12px 24px',
+  borderRadius: '6px',
+  textDecoration: 'none',
+  fontWeight: 500,
+  display: 'inline-block',
+  border: 'none',
+  cursor: 'pointer',
+  fontSize: '16px',
+};
+
+const linkText: StyleProps = {
+  fontSize: '14px',
+  color: '#666666',
+  textAlign: 'center',
+  margin: '24px 0 0 0',
+};
+
+const link: StyleProps = {
+  color: '#2563eb',
+  textDecoration: 'none',
+  wordBreak: 'break-all',
+};
+
+const divider: StyleProps = {
+  border: 'none',
+  borderTop: '1px solid #e5e7eb',
+  margin: '32px 0',
+};
+
+const footer: StyleProps = {
+  fontSize: '12px',
+  color: '#9ca3af',
+  textAlign: 'center',
+  margin: '24px 0 0 0',
 };

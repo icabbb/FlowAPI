@@ -95,7 +95,7 @@ export function InvitationHandler() {
           }
           
           // Limpiar la URL para no procesar la invitación de nuevo
-          window.history.replaceState({}, '', '/dashboard');
+          window.history.replaceState({}, '', '/dashboard/shared');
           
         } catch (error: any) {
 

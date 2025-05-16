@@ -1,21 +1,33 @@
 import type { Node, Edge } from '@xyflow/react';
 import type {
-    SetNodeResultCallback,
-    UpdateNodeDataCallback,
-    ResolveVariableCallback,
-    SetFlowContextVariableCallback,
+  SetNodeResultCallback,
+  UpdateNodeDataCallback,
+  ResolveVariableCallback,
+  SetFlowContextVariableCallback,
 } from '@/contracts/types/execution.types';
 import {
-    executeHttpRequestNodeLogic,
-    executeDelayNodeLogic,
-    executeVariableSetNodeLogic,
-    executeTransformNodeLogic,
-    executeConditionalNodeLogic,
-    executeLoopNodeLogic,
-    executeJsonNodeLogic,
-    executeSelectFieldsNodeLogic,
-    executeExportNodeLogic,
+  executeHttpRequestNodeLogic,
+  executeDelayNodeLogic,
+  executeVariableSetNodeLogic,
+  executeTransformNodeLogic,
+  executeConditionalNodeLogic,
+  executeLoopNodeLogic,
+  executeJsonNodeLogic,
+  executeSelectFieldsNodeLogic,
+  executeExportNodeLogic,
 } from '@/services/executions/index';
+
+
+function getMergedInput(node: Node, edges: Edge[], nodeResults: Record<string, any>) {
+  const incomingEdges = edges.filter(e => e.target === node.id);
+  const mergedInput: Record<string, any> = {};
+  for (const edge of incomingEdges) {
+    mergedInput[edge.source] = nodeResults[edge.source]?.data ?? null;
+  }
+  console.log('[DEBUG] mergedInput', node.id, mergedInput);
+  return mergedInput;
+}
+
 
 /**
  * Executes the entire flow, starting from nodes without incoming edges.
@@ -79,18 +91,21 @@ export async function runFlowLogic(
               setFlowContextVariable
             );
             break;
-          case 'transformNode': 
-            await executeTransformNodeLogic(
-              node as Node<any>,
-              null,
-              nodes,
-              edges,
-              setNodeResult,
-              updateNodeData,
-              resolveVariable,
-              setFlowContextVariable
-            );
-            break;
+            case 'transformNode': {
+              const mergedInput = getMergedInput(node, edges, (window as any).nodeResults || {});
+              await executeTransformNodeLogic(
+                node as Node<any>,
+                mergedInput,
+                nodes,
+                edges,
+                setNodeResult,
+                updateNodeData,
+                resolveVariable,
+                setFlowContextVariable
+              );
+              break;
+            }
+            
           case 'conditionalNode':
             await executeConditionalNodeLogic(
               node as Node<any>,
@@ -229,18 +244,20 @@ export async function executeSingleNodeLogic(
           setFlowContextVariable
         );
             break;
-        case 'transformNode': 
-        await executeTransformNodeLogic(
-          node as Node<any>,
-          null,
-          nodes,
-          edges,
-          setNodeResult,
-          updateNodeData,
-          resolveVariable,
-          setFlowContextVariable
-        );
-            break;
+            case 'transformNode': {
+              const mergedInput = getMergedInput(node, edges, (window as any).nodeResults || {}); // Removed window.nodeResults reference
+              await executeTransformNodeLogic(
+                node as Node<any>,
+                mergedInput,
+                nodes,
+                edges,
+                setNodeResult,
+                updateNodeData,
+                resolveVariable,
+                setFlowContextVariable
+              );
+              break;
+            }
         case 'conditionalNode': 
         await executeConditionalNodeLogic(
           node as Node<any>,

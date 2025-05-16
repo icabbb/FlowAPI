@@ -21,8 +21,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Asegúrate de que el formato de 'from' es correcto
-    // Usa un email verificado en tu cuenta de Resend
+
     const fromEmail = "FlowAPI <onboarding@support-flowapi.me>";
     
 
