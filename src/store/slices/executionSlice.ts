@@ -45,7 +45,6 @@ export const createExecutionSlice: StateCreator<
       const { selectedEnvironmentId, userId, saveEnvironmentVariable } = get(); // Asumimos que saveEnvironmentVariable existe en environmentSlice
 
       if (selectedEnvironmentId && userId) {
-        (`[ExecutionSlice] Triggering save of variable "${variableName}" to environment ${selectedEnvironmentId}`);
         saveEnvironmentVariable(selectedEnvironmentId, {
           id: crypto.randomUUID(), // O manejar IDs existentes si la variable ya existe
           key: variableName,
