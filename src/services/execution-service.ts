@@ -24,7 +24,6 @@ function getMergedInput(node: Node, edges: Edge[], nodeResults: Record<string, a
   for (const edge of incomingEdges) {
     mergedInput[edge.source] = nodeResults[edge.source]?.data ?? null;
   }
-  console.log('[DEBUG] mergedInput', node.id, mergedInput);
   return mergedInput;
 }
 
@@ -167,19 +166,14 @@ export async function runFlowLogic(
             );
             break;
           default:
-            console.warn(
-              `[runFlowLogic] Cannot start node of type ${node.type}`
-            );
+        
             setNodeResult(node.id, {
               status: 'error',
               error: `Node type ${node.type} cannot be a starting node`,
             });
         }
       } catch (err: any) {
-        console.error(
-          `[runFlowLogic] Error on start node ${id}:`,
-          err
-        );
+    
         setNodeResult(id, { status: 'error', error: err.message });
       }
     })
@@ -320,19 +314,13 @@ export async function executeSingleNodeLogic(
         );
         break;
       default:
-        console.warn(
-          `[executeSingleNodeLogic] Type ${node.type} not executable individually`
-        );
+       
         setNodeResult(nodeId, {
           status: 'error',
           error: `Type ${node.type} cannot be executed single`,
         });
     }
   } catch (err: any) {
-    console.error(
-      `[executeSingleNodeLogic] Error on ${nodeId}:`,
-      err
-    );
     setNodeResult(nodeId, { status: 'error', error: err.message });
   }
 }
