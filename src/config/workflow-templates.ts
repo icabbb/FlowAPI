@@ -735,7 +735,175 @@ export const workflowTemplates: WorkflowTemplate[] = [
       { id: 'e-agg-out', source: 'aggregate', target: 'output', type: 'animated', sourceHandle: 'output' },
     ],
   },
-]; 
+  {
+    name: "API Health Check & Simulated Key Rotation",
+    description: "Verifies API health; if fails, simulates a key rotation and outputs new key.",
+    nodes: [
+      {
+        id: 'get-api-key',
+        type: 'variableSetNode',
+        position: { x: 50, y: 100 },
+        data: {
+          label: "Read API Key (Simulated)",
+          variableName: "apiKey",
+          variableValue: "{{env.apiKey}}",
+          target: 'flowContext',
+          tutorialText: "Obtiene la key desde el entorno.",
+        }
+      },
+      {
+        id: 'health-check',
+        type: 'httpRequest',
+        position: { x: 300, y: 100 },
+        data: {
+          label: "Health Check",
+          method: 'GET',
+          url: 'https://httpbin.org/bearer',
+          headers: [
+            { id: crypto.randomUUID(), key: 'Authorization', value: 'Bearer {{context.apiKey}}', enabled: true }
+          ],
+          tutorialText: "Usa la API Key como Bearer Token. Responde 200 si es válida, 401 si no.",
+        }
+      },
+      {
+        id: 'check-status',
+        type: 'conditionalNode',
+        position: { x: 600, y: 100 },
+        data: {
+          label: "¿Key válida?",
+          conditions: [
+            { id: crypto.randomUUID(), expression: "{{health-check::statusCode}} == 200", outputHandleId: 'valid', enabled: true }
+          ],
+          defaultOutputHandleId: 'invalid',
+          tutorialText: "Si el status es 200, la key es válida; si no, 'rota' la key.",
+        }
+      },
+      {
+        id: 'valid-output',
+        type: 'jsonNode',
+        position: { x: 900, y: 50 },
+        data: {
+          label: "Key válida",
+          width: 300,
+          tutorialText: "Muestra el resultado si la key es válida.",
+        }
+      },
+      {
+        id: 'simulate-rotate',
+        type: 'httpRequest',
+        position: { x: 900, y: 200 },
+        data: {
+          label: "Simular Rotación",
+          method: 'GET',
+          url: 'https://httpbin.org/uuid',
+          tutorialText: "Simula generar una nueva key usando httpbin.org/uuid.",
+        }
+      },
+      {
+        id: 'extract-new-key',
+        type: 'selectFields',
+        position: { x: 1200, y: 200 },
+        data: {
+          label: "Extract UUID",
+          jsonPaths: [{ id: 'uuid', path: '$.uuid', enabled: true }],
+          tutorialText: "Extrae la nueva 'key' desde el campo uuid.",
+        }
+      },
+      {
+        id: 'save-new-key',
+        type: 'variableSetNode',
+        position: { x: 1500, y: 200 },
+        data: {
+          label: "Guardar nueva Key",
+          variableName: "apiKey",
+          variableValue: "{{extract-new-key::$.uuid}}",
+          target: 'selectedEnvironment',
+          markAsSecret: true,
+          tutorialText: "Guarda la nueva key en el entorno.",
+        }
+      },
+      {
+        id: 'output-new-key',
+        type: 'jsonNode',
+        position: { x: 1800, y: 200 },
+        data: {
+          label: "Nueva Key (Simulada)",
+          width: 300,
+          tutorialText: "Muestra la nueva key generada.",
+        }
+      },
+    ],
+    edges: [
+      { id: 'e1', source: 'get-api-key', target: 'health-check', type: 'animated', sourceHandle: 'output' },
+      { id: 'e2', source: 'health-check', target: 'check-status', type: 'animated', sourceHandle: 'output' },
+      { id: 'e3v', source: 'check-status', target: 'valid-output', type: 'animated', sourceHandle: 'valid' },
+      { id: 'e3i', source: 'check-status', target: 'simulate-rotate', type: 'animated', sourceHandle: 'invalid' },
+      { id: 'e4', source: 'simulate-rotate', target: 'extract-new-key', type: 'animated', sourceHandle: 'output' },
+      { id: 'e5', source: 'extract-new-key', target: 'save-new-key', type: 'animated', sourceHandle: 'output' },
+      { id: 'e6', source: 'save-new-key', target: 'output-new-key', type: 'animated', sourceHandle: 'output' },
+    ],
+  },
+  {
+    name: "POST and Conditional Response",
+    description: "POST real a httpbin, muestra resultado según status.",
+    nodes: [
+      {
+        id: 'do-post',
+        type: 'httpRequest',
+        position: { x: 100, y: 100 },
+        data: {
+          label: "POST datos",
+          method: 'POST',
+          url: 'https://httpbin.org/post',
+          headers: [
+            { id: crypto.randomUUID(), key: 'Content-Type', value: 'application/json', enabled: true }
+          ],
+          bodyType: 'json',
+          body: JSON.stringify({ foo: "bar", number: 123 }),
+          tutorialText: "Envía un POST real. Puedes modificar el body para probar.",
+        }
+      },
+      {
+        id: 'post-status-check',
+        type: 'conditionalNode',
+        position: { x: 350, y: 100 },
+        data: {
+          label: "¿Status 200?",
+          conditions: [
+            { id: crypto.randomUUID(), expression: "{{do-post::statusCode}} == 200", outputHandleId: 'ok', enabled: true }
+          ],
+          defaultOutputHandleId: 'fail',
+          tutorialText: "Si statusCode es 200, POST fue exitoso.",
+        }
+      },
+      {
+        id: 'output-ok',
+        type: 'jsonNode',
+        position: { x: 650, y: 50 },
+        data: {
+          label: "Resultado OK",
+          width: 320,
+          tutorialText: "Muestra el resultado cuando la petición fue exitosa.",
+        }
+      },
+      {
+        id: 'output-fail',
+        type: 'jsonNode',
+        position: { x: 650, y: 180 },
+        data: {
+          label: "Error POST",
+          width: 320,
+          tutorialText: "Muestra el error cuando el POST no es exitoso.",
+        }
+      },
+    ],
+    edges: [
+      { id: 'e1', source: 'do-post', target: 'post-status-check', type: 'animated', sourceHandle: 'output' },
+      { id: 'e2', source: 'post-status-check', target: 'output-ok', type: 'animated', sourceHandle: 'ok' },
+      { id: 'e3', source: 'post-status-check', target: 'output-fail', type: 'animated', sourceHandle: 'fail' },
+    ],
+  },
+];
 
 export const complexWorkflowExample: WorkflowTemplate = {
   name: "Complex Workflow Example",

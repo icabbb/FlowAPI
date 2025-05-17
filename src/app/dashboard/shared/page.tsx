@@ -32,6 +32,74 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "next-themes";
 import { CollaborationsTopBar } from "./components/shared-flows-header";
+import { cn } from "@/lib/utils";
+
+// --- cartoon UI style helper ---
+const useCartoon = () => {
+  const { theme } = useTheme();
+  const dark = theme === "dark";
+  return {
+    dark,
+    shadow: dark
+      ? "shadow-[5px_5px_0px_#1e40af]"
+      : "shadow-[5px_5px_0px_#334155]",
+    page: dark
+      ? "bg-[#16213a] text-blue-100"
+      : "bg-white text-neutral-900",
+    card: cn(
+      "rounded-2xl border-[3px] px-6 py-5 flex flex-col min-h-40 transition-all duration-200 group",
+      "hover:scale-[1.03] active:scale-[0.99]",
+      dark
+        ? "bg-[#23315d] border-blue-400"
+        : "bg-white border-neutral-800",
+      "hover:border-blue-500", // efecto cartoon
+      "hover:shadow-[7px_7px_0px_#1e40af]"
+    ),
+    btn: cn(
+      "border-[3px] rounded-xl font-extrabold transition-all duration-150 px-5 py-2",
+      "shadow-sm",
+      dark
+        ? "border-blue-400 bg-[#19213a] text-blue-100 hover:bg-[#253155] hover:text-white"
+        : "border-neutral-800 bg-white text-blue-900 hover:bg-neutral-100 hover:text-blue-900"
+    ),
+    btnPrimary: cn(
+      "border-[3px] rounded-xl font-extrabold transition-all duration-150 px-5 py-2",
+      "shadow",
+      "bg-blue-600 border-blue-900 text-white hover:bg-blue-700 hover:border-blue-800"
+    ),
+    btnDanger: cn(
+      "border-[3px] rounded-xl font-extrabold transition-all duration-150 px-5 py-2",
+      dark
+        ? "border-blue-400 bg-[#23315d] text-red-200 hover:bg-blue-800/70 hover:text-red-400"
+        : "border-neutral-800 bg-white text-red-700 hover:bg-blue-50 hover:text-red-800"
+    ),
+    scroll: "scrollbar-thin scrollbar-thumb-blue-300/80",
+    pill: cn(
+      "rounded-full font-black text-xs px-4 py-1 border-2",
+      dark
+        ? "bg-[#0d182b] border-blue-700 text-blue-100"
+        : "bg-blue-50 border-blue-400 text-blue-700"
+    ),
+    input: cn(
+      "pl-10 h-12 border-[3px] rounded-xl text-base font-bold",
+      dark
+        ? "bg-[#19213a] border-blue-600 text-blue-100 placeholder:text-blue-200/70"
+        : "bg-white border-neutral-800 text-blue-900 placeholder:text-blue-400"
+    ),
+    pending: dark
+      ? "bg-blue-900/40 text-blue-200 border-blue-300"
+      : "bg-blue-100 text-blue-900 border-blue-400",
+    accepted: dark
+      ? "bg-blue-800/40 text-blue-100 border-blue-400"
+      : "bg-blue-50 text-blue-700 border-blue-400",
+    badgeEdit: dark
+      ? "bg-blue-800/40 text-blue-100 border-blue-300"
+      : "bg-blue-50 text-blue-700 border-blue-400",
+    badgeView: dark
+      ? "bg-white border-blue-400 text-blue-500"
+      : "bg-white border-blue-400 text-blue-500",
+  };
+};
 
 type Collaboration = {
   collaboration_id: string;
@@ -45,60 +113,6 @@ type Collaboration = {
   flow_slug?: string;
 };
 
-const cn = (...cls: (string | false | undefined)[]) => cls.filter(Boolean).join(" ");
-
-const useCartoon = () => {
-  const { theme } = useTheme();
-  const dark = theme === "dark";
-  const shadow = dark
-    ? "shadow-[5px_5px_0px_#1e40af]"
-    : "shadow-[5px_5px_0px_#334155]";
-  return {
-    dark,
-    shadow,
-    page: dark
-      ? "bg-gradient-to-br from-[#111827] to-[#1e293b] text-blue-100"
-      : "bg-gradient-to-br from-[#f0fdfa] to-[#e0e7ff] text-slate-800",
-    card: cn(
-      "rounded-3xl border-[3px] px-5 py-4 flex flex-col min-h-32 transition-all duration-150",
-      shadow,
-      dark
-        ? "bg-[#1e293b] border-blue-500 hover:border-emerald-400/70"
-        : "bg-white border-slate-900 hover:border-emerald-400/70"
-    ),
-    btnBorder: cn(
-      "border-[3px] rounded-xl font-semibold transition-all duration-150",
-      shadow
-    ),
-    scroll: "scrollbar-thin scrollbar-thumb-blue-400/80",
-    pill: "px-3 py-1 rounded-full font-bold text-xs",
-    input: cn(
-      "pl-10 h-11 border-[3px] rounded-xl bg-opacity-70",
-      shadow,
-      dark ? "bg-[#334155] border-blue-600 text-blue-100" : "bg-white border-slate-900 text-slate-800"
-    ),
-    icon: (color: string) =>
-      dark
-        ? `text-${color}-200 drop-shadow-lg`
-        : `text-${color}-600 drop-shadow`,
-    pending: dark
-      ? "bg-yellow-600/40 text-yellow-200 border-yellow-400"
-      : "bg-yellow-100 text-yellow-900 border-yellow-400",
-    accepted: dark
-      ? "bg-green-800/40 text-green-200 border-green-500"
-      : "bg-green-100 text-green-900 border-green-500",
-    declined: dark
-      ? "bg-red-800/40 text-red-200 border-red-500"
-      : "bg-red-100 text-red-900 border-red-500",
-    badgeEdit: dark
-      ? "bg-emerald-600/40 text-emerald-200 border-emerald-400"
-      : "bg-emerald-100 text-emerald-800 border-emerald-400",
-    badgeView: dark
-      ? "bg-blue-600/40 text-blue-100 border-blue-400"
-      : "bg-blue-100 text-blue-800 border-blue-400",
-  };
-};
-
 export default function CollaborationsDashboard() {
   const P = useCartoon();
   const { user } = useUser();
@@ -109,6 +123,8 @@ export default function CollaborationsDashboard() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"pending" | "accepted">("pending");
   const [updating, setUpdating] = useState<string | null>(null);
+  const { theme } = useTheme();
+  const dark = theme === "dark";
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -130,9 +146,7 @@ export default function CollaborationsDashboard() {
     }
   }, [user, supabase, toast]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const updateStatus = async (
     id: string,
@@ -170,16 +184,20 @@ export default function CollaborationsDashboard() {
     const waiting = updating === c.collaboration_id;
     const openFlowUrl = c.flow_slug ? `/flow/s/${c.flow_slug}` : `/flow/${c.flow_id}`;
     return (
-      <Card key={c.collaboration_id} className={P.card + " group"}>
-        <CardHeader className="p-3 pb-2">
-          <CardTitle className="truncate text-lg font-black flex items-center gap-2">
-            {tab === "pending" && <Inbox className="h-4 w-4 text-yellow-500 animate-bounce" />}
-            {tab === "accepted" && <Users className="h-4 w-4 text-emerald-500" />}
-            {c.flow_name}
+      <Card key={c.collaboration_id} className={P.card}>
+        <CardHeader className="p-3 pb-1">
+          <CardTitle className="truncate text-lg font-extrabold flex items-center gap-2">
+            {tab === "pending" && (
+              <Inbox className="h-5 w-5 text-blue-400 animate-bounce" />
+            )}
+            {tab === "accepted" && (
+              <Users className="h-5 w-5 text-blue-600" />
+            )}
+            <span className="ml-1">{c.flow_name}</span>
           </CardTitle>
           {c.invited_by_name && (
-            <CardDescription className="flex gap-2 items-center text-xs mt-1">
-              <Avatar className="h-6 w-6 border-2 border-white/80">
+            <CardDescription className="flex gap-2 items-center text-xs mt-1.5">
+              <Avatar className="h-7 w-7 border-2 border-blue-200 shadow">
                 <AvatarImage src={c.invited_by_avatar || undefined} />
                 <AvatarFallback>{c.invited_by_name[0]}</AvatarFallback>
               </Avatar>
@@ -188,17 +206,17 @@ export default function CollaborationsDashboard() {
           )}
         </CardHeader>
 
-        <CardContent className="p-3 pt-2 pb-0 flex justify-between text-sm">
+        <CardContent className="p-3 pt-1 pb-0 flex justify-between items-center text-sm">
           <Badge
             className={cn(
-              "rounded-full border-2 px-3 py-1 font-bold text-xs shadow",
+              P.pill,
               c.permission_level === "edit" ? P.badgeEdit : P.badgeView
             )}
           >
             {c.permission_level === "edit" ? "Puede editar" : "Sólo lectura"}
           </Badge>
-          <span className="flex items-center gap-1 opacity-70 font-semibold">
-            <Clock className="h-3 w-3" />
+          <span className="flex items-center gap-1 opacity-70 font-extrabold">
+            <Clock className="h-4 w-4" />
             {formatDistanceToNow(t, { addSuffix: true, locale: es })}
           </span>
         </CardContent>
@@ -209,10 +227,7 @@ export default function CollaborationsDashboard() {
               <Button
                 size="sm"
                 variant="outline"
-                className={cn(
-                  "hover:bg-red-200 hover:text-red-800 border-red-400 text-red-700 font-bold transition-all duration-150",
-                  P.btnBorder
-                )}
+                className={P.btnDanger}
                 onClick={() => updateStatus(c.collaboration_id, "declined")}
                 disabled={waiting}
               >
@@ -225,10 +240,7 @@ export default function CollaborationsDashboard() {
               </Button>
               <Button
                 size="sm"
-                className={cn(
-                  "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 font-bold transition-all duration-150",
-                  P.btnBorder
-                )}
+                className={P.btnPrimary}
                 onClick={() => updateStatus(c.collaboration_id, "accepted")}
                 disabled={waiting}
               >
@@ -244,10 +256,7 @@ export default function CollaborationsDashboard() {
             <Button
               size="sm"
               asChild
-              className={cn(
-                "bg-blue-500 hover:bg-blue-600 text-white border-blue-700 font-bold transition-all duration-150",
-                P.btnBorder
-              )}
+              className={P.btnPrimary}
             >
               <Link href={openFlowUrl}>Abrir Flujo</Link>
             </Button>
@@ -259,8 +268,8 @@ export default function CollaborationsDashboard() {
 
   if (loading)
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+      <div className="flex h-screen items-center justify-center bg-white dark:bg-[#16213a]">
+        <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
       </div>
     );
 
@@ -269,38 +278,38 @@ export default function CollaborationsDashboard() {
       {/* Cartoon sticky top-bar */}
       <CollaborationsTopBar />
 
-      <main className={cn("flex-1 overflow-y-auto px-4 py-7", P.scroll)}>
+      <main className={cn("flex-1 overflow-y-auto px-4 py-8", P.scroll)}>
         <div className="max-w-7xl mx-auto">
-          <div className="mb-6 flex flex-col sm:flex-row gap-3 items-center">
-            <div className="relative flex-1 max-w-xs">
+          <div className="mb-7 flex flex-col sm:flex-row gap-4 items-center">
+            <div className="relative flex-1 max-w-xs w-full">
               <Input
                 placeholder="Buscar flujo..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={P.input}
+                className={P.input + " pr-3"}
               />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-500 opacity-80 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-400 opacity-80 pointer-events-none" />
             </div>
             <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-              <TabsList className={cn("border-[3px] rounded-xl px-1.5", P.shadow)}>
-                <TabsTrigger value="pending">
-                  <Inbox className="h-4 w-4 mr-1 text-yellow-500" /> Pendientes
+              <TabsList className={cn("border-[3px] rounded-xl px-2 py-1.5", P.shadow, dark ? "bg-[#23315d]" : "bg-white")}>
+                <TabsTrigger value="pending" className="font-extrabold">
+                  <Inbox className="h-4 w-4 mr-1 text-blue-400" /> Pendientes
                 </TabsTrigger>
-                <TabsTrigger value="accepted">
-                  <Users className="h-4 w-4 mr-1 text-emerald-500" /> Aceptadas
+                <TabsTrigger value="accepted" className="font-extrabold">
+                  <Users className="h-4 w-4 mr-1 text-blue-700" /> Aceptadas
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
 
           {list.length === 0 ? (
-            <p className="italic text-center opacity-70">
+            <p className="italic text-center opacity-70 text-base py-16">
               {tab === "pending"
                 ? "No tienes invitaciones pendientes."
                 : "Aún no colaboras en ningún flujo."}
             </p>
           ) : (
-            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-7 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {list.map(CardItem)}
             </div>
           )}

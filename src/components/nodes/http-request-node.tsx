@@ -124,8 +124,8 @@ function HttpRequestNodeComponent({ data, id, isConnectable }: NodeProps) {
             className={cn(
               'w-full h-9 nodrag font-semibold border-2 rounded-lg text-sm flex items-center justify-center gap-1.5 transition-all transform hover:scale-[1.02] shadow-sm',
               isDark
-                ? 'bg-green-600 hover:bg-green-700 text-white border-green-800'
-                : 'bg-lime-500 hover:bg-lime-600 text-white border-lime-700 focus:ring-lime-500',
+                ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-800'
+                : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-800',
               isRunning &&
                 (isDark
                   ? 'bg-blue-600 hover:bg-blue-600 border-blue-700 text-white cursor-wait'

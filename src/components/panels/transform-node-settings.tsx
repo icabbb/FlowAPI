@@ -11,8 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, Plus, ArrowRight } from 'lucide-react';
 
-// Re-define or import interfaces from transform-node.tsx
-// Export the interface
 export interface MappingRule {
   id: string;
   inputPath: string;
@@ -20,7 +18,6 @@ export interface MappingRule {
   enabled: boolean;
 }
 
-// Export the interface
 export interface TransformNodeData {
   label?: string;
   mappingRules?: MappingRule[];
@@ -36,79 +33,49 @@ interface TransformNodeSettingsProps {
   node: Node<TransformNodeData>;
 }
 
-// Helper to get button styles based on theme
-const getCartoonButtonStyles = (isDark: boolean) => {
-  const base = cn(
-    "gap-1 rounded-xl border-2 px-4 py-2 text-sm font-semibold shadow-sm transition-all duration-200 transform hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60",
-    isDark ? "border-purple-500 focus:ring-offset-neutral-900" : "border-neutral-800"
-  );
-  const outline = cn(
-    base,
-    isDark 
-      ? "bg-neutral-800 hover:bg-neutral-700 text-purple-300 focus:ring-purple-500" 
-      : "bg-white hover:bg-neutral-100 text-neutral-800 focus:ring-purple-500"
-  );
-  const icon = cn(
-    "h-9 w-9 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm transition-all duration-200 disabled:opacity-50 flex items-center justify-center",
-    isDark 
-      ? "border-purple-500 text-purple-300 hover:bg-neutral-700 focus:ring-purple-500 focus:ring-offset-neutral-900" 
-      : "border-neutral-800 text-neutral-600 hover:bg-neutral-100 focus:ring-purple-500"
-  );
-  return { outline, icon };
-};
-
 export function TransformNodeSettings({ node }: TransformNodeSettingsProps) {
   const { updateNodeData } = useFlowStore();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const nodeId = node.id;
-  const { outline: outlineButtonStyle, icon: iconButtonStyle } = getCartoonButtonStyles(isDark);
 
-  // State for form fields
   const [label, setLabel] = useState(node.data?.label ?? defaultNodeData.label);
   const [mappingRules, setMappingRules] = useState<MappingRule[]>(node.data?.mappingRules ?? defaultNodeData.mappingRules ?? []);
 
-  // Sync state when the selected node changes
   useEffect(() => {
     setLabel(node.data?.label ?? defaultNodeData.label);
     setMappingRules(node.data?.mappingRules ?? defaultNodeData.mappingRules ?? []);
   }, [node.id, node.data?.label, node.data?.mappingRules]);
 
-  // --- Callbacks for updating store on blur/change --- 
   const handleLabelChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setLabel(event.target.value);
   }, []);
 
   const handleLabelBlur = useCallback(() => {
     if (node.data?.label !== label) {
-      updateNodeData(nodeId, { label: label });
+      updateNodeData(nodeId, { label });
     }
   }, [nodeId, label, node.data?.label, updateNodeData]);
 
-  // Notify parent about rule changes
   const notifyRuleChange = (updatedRules: MappingRule[]) => {
     setMappingRules(updatedRules);
     updateNodeData(nodeId, { mappingRules: updatedRules });
   };
 
-  // --- Rule Manipulation Callbacks ---
   const handleRuleChange = (id: string, field: 'inputPath' | 'outputPath', value: string) => {
-    const updated = mappingRules.map(rule => 
-      rule.id === id ? { ...rule, [field]: value } : rule
+    notifyRuleChange(
+      mappingRules.map(rule => rule.id === id ? { ...rule, [field]: value } : rule)
     );
-    notifyRuleChange(updated);
   };
 
   const handleToggleRule = (id: string) => {
-    const updated = mappingRules.map(rule => 
-      rule.id === id ? { ...rule, enabled: !rule.enabled } : rule
+    notifyRuleChange(
+      mappingRules.map(rule => rule.id === id ? { ...rule, enabled: !rule.enabled } : rule)
     );
-    notifyRuleChange(updated);
   };
 
   const handleDeleteRule = (id: string) => {
-    const updated = mappingRules.filter(rule => rule.id !== id);
-    notifyRuleChange(updated);
+    notifyRuleChange(mappingRules.filter(rule => rule.id !== id));
   };
 
   const handleAddRule = () => {
@@ -121,19 +88,19 @@ export function TransformNodeSettings({ node }: TransformNodeSettingsProps) {
     notifyRuleChange([...mappingRules, newRule]);
   };
 
-  // --- Render Logic --- 
+  // Cartoon color palette
+  const borderCard = isDark ? "border-blue-400" : "border-neutral-300";
+  const labelText = isDark ? "text-blue-100" : "text-neutral-800";
+
   return (
-    <div className="space-y-5 font-sans">
-      {/* Label Setting */}
+    <div className="space-y-6 font-sans">
+      {/* Label */}
       <div>
-        <Label 
-          htmlFor="label" 
-          className={cn(
-            "text-sm font-semibold mb-1.5 block",
-            isDark ? "text-purple-200" : "text-neutral-700"
-          )}
+        <Label
+          htmlFor="label"
+          className={cn("text-sm font-semibold mb-1 block", labelText)}
         >
-          Label
+          Node Label
         </Label>
         <Input
           id="label"
@@ -142,47 +109,36 @@ export function TransformNodeSettings({ node }: TransformNodeSettingsProps) {
           value={label}
           onChange={handleLabelChange}
           onBlur={handleLabelBlur}
-          onMouseDown={(e) => e.stopPropagation()} 
+          onMouseDown={e => e.stopPropagation()}
           className={cn(
-            "w-full rounded-lg focus:outline-none h-10 px-3 text-sm shadow-sm border-2",
-            "allow-text-selection",
-            isDark 
-              ? "bg-neutral-800 border-purple-500/70 text-white focus:border-purple-400"
-              : "bg-white border-neutral-800 text-neutral-800 focus:border-purple-500"
+            "w-full h-10 rounded-xl px-4 border-2 shadow-cartoon text-sm allow-text-selection focus:outline-none",
+            isDark
+              ? "bg-[#0f172acc] border-blue-400 text-white focus:border-blue-300"
+              : "bg-white border-neutral-800 text-neutral-800 focus:border-blue-500"
           )}
         />
       </div>
 
-      {/* Mapping Rules Section */}
+      {/* Mapping Rules */}
       <div className={cn(
-        "space-y-3 p-4 rounded-lg shadow-sm border-2",
-        isDark 
-          ? "bg-neutral-800 border-blue-500"
-          : "bg-white border-neutral-800"
+        "rounded-2xl border-2 shadow-cartoon p-4 space-y-4",
+        isDark ? "bg-[#222d46] border-blue-400" : "bg-white border-neutral-300"
       )}>
-        <h3 className={cn(
-          "text-sm font-semibold",
-          isDark ? "text-blue-200" : "text-neutral-800"
-        )}>
-          Mapping Rules
-        </h3>
-        <p className={cn(
-          "text-xs",
-          isDark ? "text-blue-100/70" : "text-neutral-600"
-        )}>
-          Define how to map input data fields to the output structure.
+        <div className="flex items-center gap-2 mb-1">
+          <ArrowRight className={cn("h-4 w-4", isDark ? "text-blue-400" : "text-blue-700")} />
+          <span className={cn("text-base font-bold", labelText)}>Mapping Rules</span>
+        </div>
+        <p className={cn("text-xs mb-2", isDark ? "text-blue-100/70" : "text-neutral-600")}>
+          Map input JSON paths to new output keys.
         </p>
-        
-        {/* List of Rules */}
+        {/* Rules List */}
         <div className="space-y-3">
-          {mappingRules.map((rule) => (
-            <div 
-              key={rule.id} 
+          {mappingRules.map((rule, i) => (
+            <div
+              key={rule.id}
               className={cn(
-                "flex items-center gap-2.5 p-2 rounded border",
-                isDark 
-                  ? "border-blue-500/30"
-                  : "border-neutral-200"
+                "flex items-center gap-2 p-2 rounded-xl border-2 shadow-sm",
+                isDark ? "bg-blue-900/10 border-blue-300" : "bg-blue-50 border-blue-200"
               )}
             >
               <Checkbox
@@ -190,38 +146,38 @@ export function TransformNodeSettings({ node }: TransformNodeSettingsProps) {
                 checked={rule.enabled}
                 onCheckedChange={() => handleToggleRule(rule.id)}
                 className={cn(
-                  "nodrag h-5 w-5 rounded border-2 focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm",
-                  isDark 
-                    ? "border-blue-500 bg-neutral-800 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-700 data-[state=checked]:text-white focus:ring-blue-500 focus:ring-offset-neutral-900" 
-                    : "border-neutral-800 bg-white data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-700 data-[state=checked]:text-white focus:ring-blue-500"
+                  "nodrag h-5 w-5 rounded border-2 mt-1",
+                  isDark
+                    ? "border-blue-400 bg-neutral-800 data-[state=checked]:bg-blue-600"
+                    : "border-blue-400 bg-white data-[state=checked]:bg-blue-500"
                 )}
               />
-              <div className="flex-grow grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
+              <div className="flex-1 flex flex-col sm:flex-row items-center gap-2">
                 <Input
                   type="text"
                   placeholder="Input Path (e.g., $.user.id)"
                   value={rule.inputPath}
-                  onChange={(e) => handleRuleChange(rule.id, 'inputPath', e.target.value)}
-                  onMouseDown={(e) => e.stopPropagation()}
+                  onChange={e => handleRuleChange(rule.id, 'inputPath', e.target.value)}
+                  onMouseDown={e => e.stopPropagation()}
                   className={cn(
-                    "h-9 px-3 text-xs font-mono rounded-md shadow-sm border-2 allow-text-selection",
-                    isDark 
-                      ? "bg-neutral-700 border-blue-500/50 text-white focus:border-blue-400 placeholder:text-blue-200/50"
-                      : "bg-white border-neutral-300 text-neutral-800 focus:border-blue-500"
+                    "h-9 w-full min-w-0 px-3 font-mono text-xs rounded-lg border-2 shadow-cartoon allow-text-selection",
+                    isDark
+                      ? "bg-neutral-800 border-blue-400 text-white focus:border-blue-300"
+                      : "bg-white border-blue-400 text-neutral-900 focus:border-blue-500"
                   )}
                 />
-                <ArrowRight className={cn("h-4 w-4 flex-shrink-0", isDark ? "text-blue-400" : "text-neutral-500")} />
+                <ArrowRight className={cn("h-4 w-4 mx-1", isDark ? "text-blue-400" : "text-blue-700")} />
                 <Input
                   type="text"
                   placeholder="Output Path (e.g., userId)"
                   value={rule.outputPath}
-                  onChange={(e) => handleRuleChange(rule.id, 'outputPath', e.target.value)}
-                  onMouseDown={(e) => e.stopPropagation()}
+                  onChange={e => handleRuleChange(rule.id, 'outputPath', e.target.value)}
+                  onMouseDown={e => e.stopPropagation()}
                   className={cn(
-                    "h-9 px-3 text-xs font-mono rounded-md shadow-sm border-2 allow-text-selection",
-                    isDark 
-                      ? "bg-neutral-700 border-blue-500/50 text-white focus:border-blue-400 placeholder:text-blue-200/50"
-                      : "bg-white border-neutral-300 text-neutral-800 focus:border-blue-500"
+                    "h-9 w-full min-w-0 px-3 font-mono text-xs rounded-lg border-2 shadow-cartoon allow-text-selection",
+                    isDark
+                      ? "bg-neutral-800 border-blue-400 text-white focus:border-blue-300"
+                      : "bg-white border-blue-400 text-neutral-900 focus:border-blue-500"
                   )}
                 />
               </div>
@@ -230,31 +186,31 @@ export function TransformNodeSettings({ node }: TransformNodeSettingsProps) {
                 size="icon"
                 onClick={() => handleDeleteRule(rule.id)}
                 className={cn(
-                  iconButtonStyle, 
-                  "flex-shrink-0 nodrag h-8 w-8", // Make slightly smaller
-                  isDark 
-                    ? "hover:bg-red-900/50 hover:text-red-300 hover:border-red-500 focus:ring-red-500" 
-                    : "hover:bg-red-100 hover:text-red-600 focus:ring-red-500"
+                  "ml-2 rounded-full border-2 border-transparent hover:border-red-400 hover:bg-red-100/70 transition text-blue-200 hover:text-red-400",
+                  !isDark && "text-blue-700 hover:text-red-500"
                 )}
                 title="Delete rule"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           ))}
         </div>
-
         {/* Add Rule Button */}
         <Button
           variant="outline"
           size="sm"
           onClick={handleAddRule}
-          className={cn(outlineButtonStyle, "mt-3 nodrag w-full justify-center py-2")}
+          className={cn(
+            "w-full mt-3 py-2 flex items-center justify-center gap-2 rounded-xl border-2 shadow-cartoon font-bold",
+            isDark
+              ? "border-blue-400 text-blue-100 hover:bg-blue-600/10"
+              : "border-neutral-300 text-blue-700 hover:bg-blue-100"
+          )}
         >
-          <Plus className="h-4 w-4 mr-1.5" />
-          Add Mapping Rule
+          <Plus className="h-4 w-4" /> Add Mapping Rule
         </Button>
       </div>
     </div>
   );
-} 
+}

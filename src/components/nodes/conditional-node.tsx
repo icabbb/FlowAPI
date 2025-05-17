@@ -45,6 +45,7 @@ function ConditionalNodeComponent({ data, id, isConnectable }: NodeProps) {
         type="target"
         position={Position.Left}
         isConnectable={isConnectable}
+        
         className={cn(
           '!w-3 !h-3 !shadow-md !z-10',
           isDark ? '!bg-blue-400 !border-blue-600' : '!bg-blue-500 !border-neutral-800'
@@ -72,29 +73,33 @@ function ConditionalNodeComponent({ data, id, isConnectable }: NodeProps) {
         Branches execution based on conditions.
       </div>
     </CartoonNodeWrapper>
-    <Handle
-        type="source"
-        position={Position.Right}
-        id="true"
-        isConnectable={isConnectable}
-        className={cn(
-          '!w-3 !h-3 !shadow-md !z-10',
-          isDark ? '!bg-pink-500 !border-pink-400' : '!bg-pink-500 !border-neutral-800'
-        )}
-        style={{ top: '35%' }}
-      />
+    {(nodeData.conditions || []).map((cond, idx) => (
+  <Handle
+    key={cond.outputHandleId}
+    type="source"
+    position={Position.Right}
+    id={cond.outputHandleId} // <-- Esto hace dinámico el id
+    isConnectable={isConnectable}
+    className={cn(
+      '!w-3 !h-3 !shadow-md !z-10',
+      isDark ? '!bg-pink-500 !border-pink-400' : '!bg-pink-500 !border-neutral-800'
+    )}
+    style={{ top: `${30 + idx * 20}%` }} // Distribuye verticalmente
+  />
+))}
 
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="default"
-        isConnectable={isConnectable}
-        className={cn(
-          '!w-3 !h-3 !shadow-md !z-10',
-          isDark ? '!bg-gray-500 !border-gray-400' : '!bg-gray-500 !border-neutral-800'
-        )}
-        style={{ top: '65%' }}
-      />
+{/* Renderiza el default al final */}
+<Handle
+  type="source"
+  position={Position.Right}
+  id={nodeData.defaultOutputHandleId || 'default'}
+  isConnectable={isConnectable}
+  className={cn(
+    '!w-3 !h-3 !shadow-md !z-10',
+    isDark ? '!bg-gray-500 !border-gray-400' : '!bg-gray-500 !border-neutral-800'
+  )}
+  style={{ top: `${30 + (nodeData.conditions?.length ?? 0) * 20}%` }}
+/>
     </>
   );
 }

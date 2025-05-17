@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Node } from '@xyflow/react';
-import { useFlowStore } from '@/store/index'; // Assuming this path is correct
-import { cn } from '@/lib/utils'; // Assuming this path is correct
+import { useFlowStore } from '@/store/index';
+import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
-import { Button } from '@/components/ui/button'; // Assuming this path is correct
-import { Input } from '@/components/ui/input'; // Assuming this path is correct
-import { Label } from '@/components/ui/label'; // Assuming this path is correct
-import { Checkbox } from '@/components/ui/checkbox'; // Assuming this path is correct
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Trash2, Plus, GitBranch } from 'lucide-react';
 
 export interface ConditionRule {
@@ -17,7 +17,6 @@ export interface ConditionRule {
   outputHandleId: string;
   enabled: boolean;
 }
-
 export interface ConditionalNodeData {
   label?: string;
   conditions?: ConditionRule[];
@@ -54,6 +53,7 @@ export function ConditionalNodeSettings({ node }: ConditionalNodeSettingsProps) 
 
   const update = (data: Partial<ConditionalNodeData>) => updateNodeData(node.id, data);
 
+  // --- handlers
   const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => setLabel(e.target.value);
   const handleLabelBlur = () => update({ label });
 
@@ -78,28 +78,20 @@ export function ConditionalNodeSettings({ node }: ConditionalNodeSettingsProps) 
   };
 
   const addCondition = () => {
-    updateConditions([...conditions, { id: crypto.randomUUID(), expression: '', outputHandleId: '', enabled: true }]);
+    updateConditions([
+      ...conditions,
+      { id: crypto.randomUUID(), expression: '', outputHandleId: '', enabled: true }
+    ]);
   };
 
-  const commonInputClasses = "h-10 border-2";
-  const darkThemeInputClasses = "bg-neutral-800 border-pink-500 text-white placeholder:text-neutral-400";
-  const lightThemeInputClasses = "bg-white border-neutral-800 text-neutral-800 placeholder:text-neutral-500";
-
-  const commonConditionInputClasses = "text-xs font-mono border-2";
-  const darkThemeConditionInputClasses = "bg-neutral-700 text-white border-pink-500 placeholder:text-neutral-400";
-  const lightThemeConditionInputClasses = "bg-white text-neutral-800 border-neutral-300 placeholder:text-neutral-500";
-
+  // --- Cartoon border: blue in dark, neutral-200 in light
+  const cartoonBorder = isDark ? 'border-blue-400' : 'border-neutral-300';
 
   return (
-    <div className="space-y-6 font-sans p-1"> {/* Increased main spacing, added slight padding for scrollbar room */}
+    <div className="space-y-7 font-sans px-1 pb-2 pt-2">
+      {/* Node Label */}
       <div>
-        <Label 
-          htmlFor="node-label" 
-          className={cn(
-            "text-sm font-semibold", 
-            isDark ? 'text-pink-200' : 'text-neutral-700 border-2 border-pink-500' // This light mode style with pink border is specific and kept
-          )}
-        >
+        <Label htmlFor="node-label" className={cn("text-sm font-bold mb-1 block", isDark ? 'text-blue-100' : 'text-neutral-700')}>
           Node Label
         </Label>
         <Input
@@ -109,111 +101,118 @@ export function ConditionalNodeSettings({ node }: ConditionalNodeSettingsProps) 
           value={label}
           onChange={handleLabelChange}
           onBlur={handleLabelBlur}
-          className={cn(commonInputClasses, isDark ? darkThemeInputClasses : lightThemeInputClasses)}
+          className={cn(
+            "h-10 border-2 rounded-xl px-4 shadow text-sm allow-text-selection",
+            isDark ? "bg-[#0f172acc] text-white" : "bg-white text-neutral-800",
+            cartoonBorder
+          )}
         />
       </div>
 
+      {/* Conditions */}
       <div className={cn(
-        "space-y-4 p-4 rounded-lg border-2 shadow-sm", 
-        isDark ? 'bg-neutral-800/70 border-pink-500' : 'bg-white border-neutral-800'
+        "rounded-2xl border-2 shadow-cartoon px-0 pb-4 pt-2",
+        isDark ? 'bg-[#1c2540] border-blue-400' : 'bg-white border-neutral-300'
       )}>
-        <h3 className={cn(
-          "text-base font-semibold flex items-center gap-2", // Slightly larger text
-          isDark ? 'text-pink-200' : 'text-neutral-800'
-        )}>
+        <div className="flex items-center gap-2 px-5 pt-3 pb-2">
           <GitBranch className="h-4 w-4" aria-hidden="true" />
-          Conditions (Evaluated Top-Down)
-        </h3>
+          <span className="font-bold text-base">Conditions</span>
+          <span className="ml-2 text-xs opacity-60">(Top-Down order)</span>
+        </div>
 
-        <div className="space-y-3"> {/* Container for condition items */}
+        {/* --- Condition list --- */}
+        <div className="space-y-4 px-3">
           {conditions.map((c, i) => (
-            <div 
-              key={c.id} 
+            <div
+              key={c.id}
               className={cn(
-                "p-3 rounded-md border relative flex gap-3 items-start",
-                isDark 
-                  ? 'bg-neutral-700/50 border-neutral-600' 
-                  : 'bg-neutral-50 border-neutral-200'
+                "relative rounded-xl border-2 px-3 py-3 flex flex-col gap-2 bg-opacity-95 shadow-sm",
+                isDark ? "bg-[#23315d] border-blue-300" : "bg-blue-50 border-blue-200"
               )}
             >
-              <span 
+              {/* Step badge */}
+              <span
                 className={cn(
-                  "absolute -top-2.5 -left-2.5 z-10 h-5 w-5 rounded-full text-xs font-bold flex items-center justify-center border", 
-                  isDark 
-                    ? 'bg-pink-600 text-pink-100 border-pink-400' 
-                    : 'bg-pink-100 text-pink-700 border-pink-400'
+                  "absolute -top-3 left-3 h-6 w-6 rounded-full border-2 font-bold text-xs flex items-center justify-center shadow z-10",
+                  isDark ? "bg-blue-700 text-blue-100 border-blue-400" : "bg-blue-100 text-blue-700 border-blue-400"
                 )}
               >
                 {i + 1}
               </span>
-              <Checkbox 
-                id={`condition-enabled-${c.id}`} 
-                checked={c.enabled} 
-                onCheckedChange={() => toggleCondition(c.id)}
-                aria-label={`Enable condition ${i + 1}`}
-                className="mt-1 flex-shrink-0"
-              />
-              <div className="flex-grow grid gap-2.5">
-                <div>
-                  <Label htmlFor={`condition-expression-${c.id}`} className="sr-only">Expression for condition {i + 1}</Label>
-                  <Input
-                    id={`condition-expression-${c.id}`}
-                    placeholder="Expression (e.g., data.temperature > 30)"  
-                    value={c.expression}
-                    onChange={(e) => handleConditionChange(c.id, 'expression', e.target.value)}
-                    className={cn(commonConditionInputClasses, isDark ? darkThemeConditionInputClasses : lightThemeConditionInputClasses, "h-9")} // slightly smaller height for nested input
-                  />
-                </div>
-                <div className="flex gap-2 items-center">
-                  <Label 
-                    htmlFor={`condition-handle-${c.id}`} 
-                    className={cn("text-xs flex-shrink-0", isDark ? 'text-neutral-300' : 'text-neutral-600')}
-                  >
-                    then use handle:
-                  </Label>
-                  <Input
-                    id={`condition-handle-${c.id}`}
-                    placeholder="Handle ID"
-                    value={c.outputHandleId}
-                    onChange={(e) => handleConditionChange(c.id, 'outputHandleId', e.target.value)}
-                    className={cn(commonConditionInputClasses, isDark ? darkThemeConditionInputClasses : lightThemeConditionInputClasses, "flex-1 h-9")} // slightly smaller height
-                  />
-                </div>
+              <div className="flex gap-2 items-center">
+                <Checkbox
+                  id={`condition-enabled-${c.id}`}
+                  checked={c.enabled}
+                  onCheckedChange={() => toggleCondition(c.id)}
+                  aria-label={`Enable condition ${i + 1}`}
+                  className="border-blue-400 scale-110"
+                />
+                <Input
+                  id={`condition-expression-${c.id}`}
+                  placeholder="e.g. {{status}} == 200"
+                  value={c.expression}
+                  onChange={(e) => handleConditionChange(c.id, 'expression', e.target.value)}
+                  className={cn(
+                    "border-2 rounded-xl px-3 py-1 font-mono text-xs shadow w-full",
+                    isDark ? "bg-[#19223a] border-blue-400 text-white" : "bg-white border-blue-200 text-neutral-900",
+                    "focus:border-blue-400"
+                  )}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => deleteCondition(c.id)}
+                  className={cn(
+                    "rounded-full ml-2",
+                    isDark
+                      ? "text-blue-200 hover:text-red-400 hover:bg-red-900/30"
+                      : "text-blue-700 hover:text-red-500 hover:bg-red-100/50"
+                  )}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </Button>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => deleteCondition(c.id)}
-                className={cn(
-                  "flex-shrink-0 self-center rounded-full", // Rounded for softer look
-                  isDark ? "text-neutral-400 hover:text-red-400 hover:bg-red-900/30" : "text-neutral-500 hover:text-red-500 hover:bg-red-100/50"
-                )}
-              >
-                <Trash2 className="h-4 w-4" aria-hidden="true" />
-                <span className="sr-only">Delete condition {i + 1}</span>
-              </Button>
+              <div className="flex gap-2 items-center pl-8">
+                <span className={cn("text-xs font-bold", isDark ? "text-blue-200" : "text-blue-700")}>
+                  then use handle:
+                </span>
+                <Input
+                  id={`condition-handle-${c.id}`}
+                  placeholder="Handle ID"
+                  value={c.outputHandleId}
+                  onChange={(e) => handleConditionChange(c.id, 'outputHandleId', e.target.value)}
+                  className={cn(
+                    "border-2 rounded-xl px-3 py-1 font-mono text-xs shadow w-full max-w-[150px]",
+                    isDark ? "bg-[#19223a] border-blue-400 text-white" : "bg-white border-blue-200 text-neutral-900",
+                    "focus:border-blue-400"
+                  )}
+                />
+              </div>
             </div>
           ))}
         </div>
 
-        <Button 
-          variant="outline" 
-          onClick={addCondition} 
-          className={cn(
-            "w-full mt-4 py-2 flex items-center justify-center gap-2", // Adjusted padding
-            isDark 
-              ? "border-pink-500 text-pink-200 hover:bg-pink-500/10 active:bg-pink-500/20" 
-              : "border-neutral-400 text-neutral-700 hover:bg-neutral-100 active:bg-neutral-200"
-          )}
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" /> Add Condition
-        </Button>
+        <div className="pt-4 px-4">
+          <Button
+            variant="outline"
+            onClick={addCondition}
+            className={cn(
+              "w-full py-2 flex items-center justify-center gap-2 rounded-xl border-2 shadow-cartoon font-bold",
+              isDark
+                ? "border-blue-400 text-blue-100 hover:bg-blue-600/10"
+                : "border-blue-300 text-blue-700 hover:bg-blue-100"
+            )}
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" /> Add Condition
+          </Button>
+        </div>
       </div>
 
+      {/* Default Handle */}
       <div>
-        <Label 
-          htmlFor="default-handle-id" 
-          className={cn("text-sm font-semibold", isDark ? 'text-pink-200' : 'text-neutral-700')}
+        <Label
+          htmlFor="default-handle-id"
+          className={cn("text-sm font-bold mb-1 block", isDark ? 'text-blue-100' : 'text-neutral-700')}
         >
           Default Output Handle ID
         </Label>
@@ -223,9 +222,13 @@ export function ConditionalNodeSettings({ node }: ConditionalNodeSettingsProps) 
           value={defaultHandleId}
           onChange={handleDefaultHandleIdChange}
           onBlur={handleDefaultHandleIdBlur}
-          className={cn(commonInputClasses, "font-mono", isDark ? darkThemeInputClasses : lightThemeInputClasses)}
+          className={cn(
+            "h-10 border-2 rounded-xl px-4 shadow font-mono text-sm allow-text-selection",
+            isDark ? "bg-[#0f172acc] text-white" : "bg-white text-neutral-800",
+            cartoonBorder
+          )}
         />
-        <p className={cn("text-xs mt-1.5", isDark ? 'text-pink-100/80' : 'text-neutral-500')}>
+        <p className={cn("text-xs mt-1.5", isDark ? 'text-blue-100/80' : 'text-neutral-500')}>
           The ID of the output handle to use if no conditions are met.
         </p>
       </div>

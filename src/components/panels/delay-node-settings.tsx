@@ -42,14 +42,19 @@ export function DelayNodeSettings({ node }: DelayNodeSettingsProps) {
     });
   };
 
+  // Cartoon border logic: blue in dark, neutral-300 in light
+  const cartoonBorder = isDark
+    ? "border-blue-500 focus:border-blue-400"
+    : "border-neutral-300 focus:border-blue-400";
+
   return (
-    <div className="space-y-5 font-sans">
+    <div className="space-y-6 font-sans">
       <div>
         <label
           htmlFor="label"
           className={cn(
-            'text-sm font-semibold mb-1.5 block',
-            isDark ? 'text-orange-200' : 'text-neutral-700'
+            'text-sm font-bold mb-1.5 block',
+            isDark ? 'text-blue-200' : 'text-neutral-700'
           )}
         >
           Label
@@ -62,10 +67,11 @@ export function DelayNodeSettings({ node }: DelayNodeSettingsProps) {
           onBlur={handleBlur}
           onMouseDown={(e) => e.stopPropagation()}
           className={cn(
-            'w-full rounded-lg h-10 px-3 text-sm shadow-sm  allow-text-selection focus:outline-none border-2 border-orange-500',
+            'w-full rounded-xl h-10 px-3 text-sm shadow-cartoon allow-text-selection focus:outline-none border-2',
             isDark
-              ? 'bg-neutral-800 border-orange-500/70 text-white focus:border-orange-400'
-              : 'bg-white border-neutral-800 text-neutral-800 focus:border-orange-500'
+              ? 'bg-[#0f172acc] text-white'
+              : 'bg-white text-neutral-800',
+            cartoonBorder
           )}
         />
       </div>
@@ -74,8 +80,8 @@ export function DelayNodeSettings({ node }: DelayNodeSettingsProps) {
         <label
           htmlFor="delayMs"
           className={cn(
-            'text-sm font-semibold mb-1.5 block',
-            isDark ? 'text-orange-200' : 'text-neutral-700'
+            'text-sm font-bold mb-1.5 block',
+            isDark ? 'text-blue-200' : 'text-neutral-700'
           )}
         >
           Delay Duration (ms)
@@ -89,13 +95,15 @@ export function DelayNodeSettings({ node }: DelayNodeSettingsProps) {
           onBlur={handleBlur}
           onMouseDown={(e) => e.stopPropagation()}
           className={cn(
-            'w-full rounded-lg h-10 px-3 text-sm shadow-sm border-2 allow-text-selection focus:outline-none',
+            'w-full rounded-xl h-10 px-3 text-sm shadow-cartoon border-2 allow-text-selection focus:outline-none',
             isDark
-              ? 'bg-neutral-800 border-orange-500/70 text-white focus:border-orange-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
-              : 'bg-white border-neutral-800 text-neutral-800 focus:border-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+              ? 'bg-[#0f172acc] text-white'
+              : 'bg-white text-neutral-800',
+            cartoonBorder,
+            '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
           )}
         />
-        <p className={cn('text-xs mt-1.5', isDark ? 'text-orange-100/70' : 'text-neutral-500')}>
+        <p className={cn('text-xs mt-1.5', isDark ? 'text-blue-100/70' : 'text-neutral-500')}>
           Enter the pause duration in milliseconds (e.g., 1000 for 1 second).
         </p>
       </div>
